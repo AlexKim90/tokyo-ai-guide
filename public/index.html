@@ -526,11 +526,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
       <div style="display:flex;align-items:flex-start;gap:12px;padding:10px;background:var(--bg);border-radius:10px;">
         <div style="width:24px;height:24px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0">1</div>
-        <div style="font-size:13px;color:var(--ink);line-height:1.6">구글맵이 열리면 <strong>저장한 리스트</strong>를 선택하세요</div>
+        <div style="font-size:13px;color:var(--ink);line-height:1.6">구글맵이 열리면 <strong>왼쪽 메뉴(☰) → 저장된 장소</strong>로 이동하세요</div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:12px;padding:10px;background:var(--bg);border-radius:10px;">
         <div style="width:24px;height:24px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0">2</div>
-        <div style="font-size:13px;color:var(--ink);line-height:1.6">리스트 화면에서 <strong>점 3개 메뉴 → 공유 → 링크 복사</strong></div>
+        <div style="font-size:13px;color:var(--ink);line-height:1.6">원하는 리스트를 열고 <strong>⋮ 메뉴 → 공유 → 링크 복사</strong></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:12px;padding:10px;background:var(--bg);border-radius:10px;">
         <div style="width:24px;height:24px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0">3</div>
@@ -1909,7 +1909,7 @@ function launchGmapsAndWait() {
   const statusEl = document.getElementById('gmapsGuideStatus');
   // 구글맵 저장 장소 페이지로 팝업 오픈
   const popup = window.open(
-    'https://www.google.com/maps/saved',
+    'https://www.google.com/maps',
     'gmaps_saved',
     'width=430,height=700,scrollbars=yes,resizable=yes'
   );
