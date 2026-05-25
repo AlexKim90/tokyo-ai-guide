@@ -678,24 +678,55 @@ async function parsePasteUrl() {
   const btn = document.getElementById('pasteBtn');
   const res = document.getElementById('pasteResult');
   btn.disabled = true; btn.textContent = '불러오는 중...';
-  res.textContent = ''; res.style.color = 'var(--ink3)';
+  res.innerHTML = ''; res.style.color = 'var(--ink3)';
   try {
     const r = await fetch(`/api/maps?type=expand&url=${encodeURIComponent(url)}`);
     const d = await r.json();
-    const name = d.name;
 
-    if (!name) {
+    // ---- 리스트 링크인 경우 ----
+    if (d.isList && d.places?.length) {
+      res.innerHTML = `
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:8px">
+          📍 <strong>"${d.listName}"</strong> 리스트 발견 — ${d.places.length}개 장소
+        </div>
+        <div style="max-height:180px;overflow-y:auto;border:0.5px solid var(--bdr);border-radius:9px;margin-bottom:10px;">
+          ${d.places.map(p => `<div style="padding:7px 11px;font-size:12px;border-bottom:0.5px solid var(--bdr)"><strong>${p.name}</strong><div style="font-size:10px;color:var(--ink3);margin-top:1px">${p.address}</div></div>`).join('')}
+        </div>
+        <button class="modalBtn" onclick="importAllPlaces(${JSON.stringify(d.places).replace(/"/g,'&quot;')}, '${d.listName.replace(/'/g,"\\'")}')">모두 내 리스트에 추가 (${d.places.length}개)</button>
+      `;
+      btn.disabled = false; btn.textContent = '장소 불러오기';
+      return;
+    }
+
+    // ---- 단일 장소 링크인 경우 ----
+    if (!d.name) {
       res.textContent = '링크에서 장소명을 찾지 못했어요. 아래에 장소명을 직접 입력해주세요.';
       document.getElementById('pasteFallback').style.display = 'block';
       btn.disabled = false; btn.textContent = '장소 불러오기';
       return;
     }
-    await addPlaceByName(name, url);
+    await addPlaceByName(d.name, url);
   } catch (e) {
     res.textContent = '오류가 발생했어요. 아래에 장소명을 직접 입력해주세요.';
     document.getElementById('pasteFallback').style.display = 'block';
   }
   btn.disabled = false; btn.textContent = '장소 불러오기';
+}
+
+function importAllPlaces(places, listName) {
+  let added = 0;
+  for (const p of places) {
+    if (!savedPlaces.find(s => s.name === p.name)) {
+      savedPlaces.push({ ...p, category: '장소', rating: null });
+      added++;
+    }
+  }
+  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  renderList();
+  closeModal('pasteModal');
+  resetPasteModal();
+  goToListTab();
+  alert(`"${listName}" 에서 ${added}개 장소를 추가했어요!`);
 }
 
 async function addByName() {
