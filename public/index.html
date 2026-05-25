@@ -197,6 +197,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .orderRom{font-size:11px;color:var(--red);font-weight:600;margin-bottom:3px;}
 .orderKR{font-size:13px;color:var(--ink2);}
 
+/* ===== 표현 카드 (탭 가능) ===== */
+.tCard-inner{cursor:pointer;transition:background .12s;}
+.tCard-inner:active{background:var(--red-l);}
+.tCardHint{font-size:10px;color:var(--ink3);margin-top:7px;display:flex;align-items:center;gap:3px;}
+
+/* ===== 표현 상세 시트 ===== */
+.pdSheet{position:relative;width:100%;max-width:430px;margin:0 auto;background:var(--card);border-radius:20px 20px 0 0;overflow:hidden;max-height:88vh;display:flex;flex-direction:column;}
+.pdHdr{display:flex;align-items:center;gap:10px;padding:16px 16px 10px;flex-shrink:0;}
+.pdLabel{font-size:12px;font-weight:600;color:var(--ink3);flex:1;text-transform:uppercase;letter-spacing:.05em;}
+.pdShowBtn{font-size:11px;background:var(--red-l);color:var(--red);border:none;border-radius:8px;padding:5px 10px;font-family:var(--font);cursor:pointer;font-weight:500;white-space:nowrap;}
+.pdBig{background:var(--bg);margin:0 14px 12px;border-radius:14px;padding:22px 18px;text-align:center;}
+.pdBigJp{font-family:var(--jp);font-size:30px;font-weight:500;color:var(--ink);line-height:1.4;margin-bottom:10px;}
+.pdBigRom{font-size:13px;color:var(--red);font-weight:600;margin-bottom:4px;}
+.pdBigKr{font-size:14px;color:var(--ink2);}
+.pdBody{flex:1;overflow-y:auto;padding:0 14px 28px;}
+.pdSection{margin-bottom:14px;}
+.pdSectionTitle{font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+.pdReply{background:var(--bg);border-radius:11px;padding:11px 13px;margin-bottom:7px;}
+.pdReplyJp{font-family:var(--jp);font-size:17px;font-weight:500;color:var(--ink);margin-bottom:4px;}
+.pdReplyRom{font-size:11px;color:var(--red);font-weight:600;margin-bottom:2px;}
+.pdReplyKr{font-size:12px;color:var(--ink2);}
+.pdTip{background:var(--red-l);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--ink2);line-height:1.65;}
+
+/* ===== 풀스크린 직원 보여주기 ===== */
+.showScreen{position:fixed;inset:0;z-index:300;background:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;cursor:pointer;}
+.showScreen.on{display:flex;}
+.showScreenJp{font-family:var(--jp);font-size:48px;font-weight:700;color:#111;text-align:center;line-height:1.4;margin-bottom:16px;}
+.showScreenRom{font-size:18px;color:#D94035;font-weight:600;margin-bottom:8px;}
+.showScreenKr{font-size:18px;color:#555;}
+.showScreenHint{position:absolute;bottom:40px;font-size:13px;color:#999;}
+
 /* ========== TAB 4: 번역·교통 ========== */
 .modeBar{display:flex;gap:6px;padding:10px 14px;background:var(--card);border-bottom:0.5px solid var(--bdr);flex-shrink:0;}
 .mBtn{flex:1;padding:7px 4px;border-radius:9px;border:0.5px solid var(--bdr);background:var(--bg);font-family:var(--font);font-size:11px;font-weight:500;cursor:pointer;color:var(--ink3);transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
@@ -461,6 +492,43 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   </div>
 </div>
 
+<!-- 표현 상세 시트 -->
+<div class="modal" id="phraseModal">
+  <div class="modalBg" onclick="closeModal('phraseModal')"></div>
+  <div class="pdSheet">
+    <div style="width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:14px auto 0;flex-shrink:0;"></div>
+    <div class="pdHdr">
+      <div class="pdLabel" id="pdLabel"></div>
+      <button class="pdShowBtn" onclick="openShowScreen()"><i class="ti ti-device-mobile" style="font-size:12px"></i> 직원 보여주기</button>
+      <div class="backBtn" onclick="closeModal('phraseModal')" style="margin-left:4px"><i class="ti ti-x" style="font-size:14px"></i></div>
+    </div>
+    <div class="pdBig">
+      <div class="pdBigJp" id="pdJp"></div>
+      <div class="pdBigRom" id="pdRom"></div>
+      <div class="pdBigKr" id="pdKr"></div>
+    </div>
+    <div class="pdBody">
+      <div class="pdSection" id="pdTipSection" style="display:none">
+        <div class="pdSectionTitle">💡 팁</div>
+        <div class="pdTip" id="pdTip"></div>
+      </div>
+      <div class="pdSection" id="pdRepliesSection">
+        <div class="pdSectionTitle">💬 돌아오는 말</div>
+        <div id="pdReplies"></div>
+        <button id="pdGenBtn" style="display:none;width:100%;padding:10px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--ink2);cursor:pointer;" onclick="genReplies()">✨ AI로 답변 예시 보기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 풀스크린: 직원에게 보여주기 -->
+<div class="showScreen" id="showScreen" onclick="closeShowScreen()">
+  <div class="showScreenJp" id="ssJp"></div>
+  <div class="showScreenRom" id="ssRom"></div>
+  <div class="showScreenKr" id="ssKr"></div>
+  <div class="showScreenHint">화면을 탭하면 닫힙니다</div>
+</div>
+
 <!-- Modal: 구글맵 링크 붙여넣기 -->
 <div class="modal" id="pasteModal">
   <div class="modalBg" onclick="closeModal('pasteModal')"></div>
@@ -577,15 +645,188 @@ const PHRASE_DB = {
 };
 
 function renderPhraseCards(phrases, dbKey) {
+  currentPhrases = phrases;
   const badge = dbKey ? `<div style="font-size:10px;color:var(--ink3);margin-top:4px;padding:0 2px">📦 "${dbKey}" · 저장된 표현</div>` : '';
-  return phrases.map(p => `<div class="tCard-inner">
+  return phrases.map((p, i) => `<div class="tCard-inner" onclick="showPhraseDetail(${i})">
     ${p.label ? `<div style="font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--ink3);margin-bottom:6px;text-transform:uppercase">${p.label}</div>` : ''}
     <div class="tCard-jp">${p.jp}</div>
     <div class="tCard-rom">${p.rom}</div>
     <div class="tCard-kr">${p.kr}</div>
     ${p.tip ? `<div class="tCard-tip">💡 ${p.tip}</div>` : ''}
+    <div class="tCardHint"><i class="ti ti-chevron-right" style="font-size:11px"></i> 탭하면 상세 보기·직원 보여주기</div>
   </div>`).join('') + badge;
 }
+
+function showPhraseDetail(idx) {
+  const p = currentPhrases[idx];
+  activePhraseIdx = idx;
+
+  document.getElementById('pdLabel').textContent = p.label || '표현';
+  document.getElementById('pdJp').textContent = p.jp;
+  document.getElementById('pdRom').textContent = p.rom;
+  document.getElementById('pdKr').textContent = p.kr;
+
+  const tipSec = document.getElementById('pdTipSection');
+  if (p.tip) { tipSec.style.display = ''; document.getElementById('pdTip').textContent = p.tip; }
+  else { tipSec.style.display = 'none'; }
+
+  const replies = p.replies || REPLY_DB[p.jp] || [];
+  const repliesEl = document.getElementById('pdReplies');
+  const genBtn = document.getElementById('pdGenBtn');
+  if (replies.length) {
+    repliesEl.innerHTML = replies.map(r => `
+      <div class="pdReply">
+        <div class="pdReplyJp">${r.jp}</div>
+        <div class="pdReplyRom">${r.rom}</div>
+        <div class="pdReplyKr">${r.kr}</div>
+      </div>`).join('');
+    genBtn.style.display = 'none';
+  } else {
+    repliesEl.innerHTML = '';
+    genBtn.style.display = '';
+    genBtn.textContent = '✨ AI로 답변 예시 보기';
+    genBtn.disabled = false;
+  }
+
+  document.getElementById('phraseModal').classList.add('on');
+}
+
+async function genReplies() {
+  const p = currentPhrases[activePhraseIdx];
+  const btn = document.getElementById('pdGenBtn');
+  btn.disabled = true; btn.textContent = '생성 중...';
+  try {
+    const sys = `당신은 일본어 전문가입니다. 아래 일본어 표현에 대해 현지인이 실제로 돌려줄 수 있는 응답 3가지를 아래 형식으로 답하세요:
+【일본어】응답 문장
+【발음】한글 발음
+【뜻】한국어 의미
+각 응답은 위 형식을 반복하세요.`;
+    const reply = await callClaude(sys, [{role:'user', content:`"${p.jp}" (${p.kr})에 대한 돌아오는 말 3가지`}]);
+    const blocks = reply.split(/(?=【일본어】)/).filter(b => b.trim());
+    const parsed = blocks.map(b => ({
+      jp: (b.match(/【일본어】([^\n【]+)/) || [])[1]?.trim() || '',
+      rom: (b.match(/【발음】([^\n【]+)/) || [])[1]?.trim() || '',
+      kr: (b.match(/【뜻】([^\n【]+)/) || [])[1]?.trim() || ''
+    })).filter(r => r.jp);
+    if (parsed.length) {
+      // 캐시: REPLY_DB에 추가
+      REPLY_DB[p.jp] = parsed;
+      document.getElementById('pdReplies').innerHTML = parsed.map(r => `
+        <div class="pdReply">
+          <div class="pdReplyJp">${r.jp}</div>
+          <div class="pdReplyRom">${r.rom}</div>
+          <div class="pdReplyKr">${r.kr}</div>
+        </div>`).join('');
+      btn.style.display = 'none';
+    }
+  } catch { btn.textContent = '오류 발생 — 다시 시도'; btn.disabled = false; }
+}
+
+function openShowScreen() {
+  const p = currentPhrases[activePhraseIdx];
+  document.getElementById('ssJp').textContent = p.jp;
+  document.getElementById('ssRom').textContent = p.rom;
+  document.getElementById('ssKr').textContent = p.kr;
+  // 화면 밝기 최대 시도
+  if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(() => {});
+  document.getElementById('showScreen').classList.add('on');
+}
+
+function closeShowScreen() {
+  document.getElementById('showScreen').classList.remove('on');
+}
+
+/* ===== 돌아오는 말 DB ===== */
+const REPLY_DB = {
+  '二人です。':[
+    {jp:'かしこまりました。お席へご案内します。',rom:'카시코마리마시타. 오세키에 고안나이시마스',kr:'알겠습니다. 자리로 안내해 드릴게요.'},
+    {jp:'ただいま満席でございます。',rom:'타다이마 만세키데 고자이마스',kr:'현재 만석이에요.'},
+    {jp:'少々お待ちください。',rom:'쇼쇼 오마치 쿠다사이',kr:'잠시만 기다려 주세요.'}
+  ],
+  '予約していません。':[
+    {jp:'お名前をお聞きしてもよろしいですか？',rom:'오나마에오 오키키시테모 요로시이데스카',kr:'성함을 여쭤봐도 될까요?'},
+    {jp:'少々お待ちください。',rom:'쇼쇼 오마치 쿠다사이',kr:'잠시만 기다려 주세요.'},
+    {jp:'申し訳ございません、本日は満席です。',rom:'모시와케 고자이마센, 혼지츠와 만세키데스',kr:'죄송합니다, 오늘은 만석이에요.'}
+  ],
+  'メニューをください。':[
+    {jp:'はい、どうぞ。',rom:'하이, 도조',kr:'네, 여기 있어요.'},
+    {jp:'英語のメニューもございます。',rom:'에이고노 메뉴모 고자이마스',kr:'영어 메뉴도 있어요.'},
+    {jp:'ご注文がお決まりになりましたら、お呼びください。',rom:'고추몬가 오키마리니 나리마시타라, 오요비 쿠다사이',kr:'주문이 결정되시면 불러 주세요.'}
+  ],
+  'これをください。':[
+    {jp:'かしこまりました。',rom:'카시코마리마시타',kr:'알겠습니다.'},
+    {jp:'少々お待ちください。',rom:'쇼쇼 오마치 쿠다사이',kr:'잠시만 기다려 주세요.'},
+    {jp:'申し訳ございません、本日は売り切れです。',rom:'모시와케 고자이마센, 혼지츠와 우리키레데스',kr:'죄송해요, 오늘은 품절이에요.'}
+  ],
+  'お水をください。':[
+    {jp:'はい、すぐお持ちします。',rom:'하이, 스구 오모치시마스',kr:'네, 바로 가져다 드릴게요.'},
+    {jp:'お冷やでよろしいですか？',rom:'오히야데 요로시이데스카',kr:'차가운 물로 괜찮으세요?'}
+  ],
+  'お会計をお願いします。':[
+    {jp:'～円になります。',rom:'～엔 니 나리마스',kr:'～엔입니다.'},
+    {jp:'カードでよろしいですか？',rom:'카도데 요로시이데스카',kr:'카드 괜찮으세요?'},
+    {jp:'ありがとうございました。またお越しください。',rom:'아리가토우 고자이마시타. 마타 오코시 쿠다사이',kr:'감사합니다. 또 오세요.'}
+  ],
+  'カードで払えますか？':[
+    {jp:'申し訳ございません、現金のみとなっております。',rom:'모시와케 고자이마센, 겐킨노미토 낫테 오리마스',kr:'죄송해요, 현금만 가능해요.'},
+    {jp:'はい、カードでお願いします。',rom:'하이, 카도데 오네가이시마스',kr:'네, 카드로 부탁드려요.'}
+  ],
+  '袋をください。':[
+    {jp:'袋は有料となっておりまして、～円になります。',rom:'후쿠로와 유료토 낫테 오리마시테, ～엔 니 나리마스',kr:'봉투는 유료로 ～엔입니다.'},
+    {jp:'はい、どうぞ。',rom:'하이, 도조',kr:'네, 여기요.'}
+  ],
+  '温めてください。':[
+    {jp:'はい、温めますね。少々お待ちください。',rom:'하이, 아타타메마스네. 쇼쇼 오마치 쿠다사이',kr:'네, 데울게요. 잠시만요.'},
+    {jp:'何ワットになさいますか？',rom:'난 왓토니 나사이마스카',kr:'몇 와트로 할까요?'}
+  ],
+  'Suicaで払います。':[
+    {jp:'こちらにタッチしてください。',rom:'코치라니 탓치시테 쿠다사이',kr:'여기에 태그해 주세요.'},
+    {jp:'ありがとうございました。',rom:'아리가토우 고자이마시타',kr:'감사합니다.'}
+  ],
+  '～はどこですか？':[
+    {jp:'まっすぐ行ってください。',rom:'맛스구 잇테 쿠다사이',kr:'직진하세요.'},
+    {jp:'右に曲がってください。',rom:'미기니 맛갓테 쿠다사이',kr:'오른쪽으로 도세요.'},
+    {jp:'左に曲がってください。',rom:'히다리니 맛갓테 쿠다사이',kr:'왼쪽으로 도세요.'},
+    {jp:'すみません、わかりません。',rom:'스미마센, 와카리마센',kr:'죄송해요, 모르겠어요.'}
+  ],
+  '道に迷いました。':[
+    {jp:'どちらに行きたいですか？',rom:'도치라니 이키타이데스카',kr:'어디 가고 싶으세요?'},
+    {jp:'地図を見せてください。',rom:'치즈오 미세테 쿠다사이',kr:'지도를 보여 주세요.'}
+  ],
+  '予約しています。':[
+    {jp:'お名前をお聞きしてもよろしいですか？',rom:'오나마에오 오키키시테모 요로시이데스카',kr:'성함을 여쭤봐도 될까요?'},
+    {jp:'パスポートをご提示ください。',rom:'파스포토오 고테이지 쿠다사이',kr:'여권을 보여 주세요.'},
+    {jp:'ただいまお部屋の準備をしております。',rom:'타다이마 오헤야노 준비오 시테 오리마스',kr:'지금 방 준비 중이에요.'}
+  ],
+  'Wi-Fiのパスワードを教えてください。':[
+    {jp:'こちらです。',rom:'코치라데스',kr:'여기 있어요.'},
+    {jp:'フロントに書いてあります。',rom:'후론토니 카이테 아리마스',kr:'프런트에 적혀 있어요.'}
+  ],
+  '助けてください！':[
+    {jp:'どうしましたか？',rom:'도우시마시타카',kr:'무슨 일이에요?'},
+    {jp:'救急車を呼びましょうか？',rom:'큐큐샤오 요비마쇼카',kr:'구급차를 부를까요?'}
+  ],
+  '救急車を呼んでください！':[
+    {jp:'はい、すぐ呼びます！',rom:'하이, 스구 요비마스',kr:'네, 바로 부를게요!'},
+    {jp:'119番に電話します。',rom:'햐쿠쥬큐반니 덴와시마스',kr:'119에 전화할게요.'}
+  ],
+  'これはいくらですか？':[
+    {jp:'～円になります。',rom:'～엔 니 나리마스',kr:'～엔입니다.'},
+    {jp:'税込みで～円です。',rom:'제이코미데 ～엔데스',kr:'세금 포함 ～엔이에요.'}
+  ],
+  '試着してもいいですか？':[
+    {jp:'はい、どうぞ。試着室はあちらです。',rom:'하이, 도조. 시챠쿠시츠와 아치라데스',kr:'네, 어서요. 탈의실은 저쪽이에요.'},
+    {jp:'申し訳ございません、試着はできません。',rom:'모시와케 고자이마센, 시챠쿠와 데키마센',kr:'죄송해요, 착용해 보실 수 없어요.'}
+  ],
+  '免税になりますか？':[
+    {jp:'はい、パスポートをご提示ください。',rom:'하이, 파스포토오 고테이지 쿠다사이',kr:'네, 여권을 보여 주세요.'},
+    {jp:'申し訳ございません、免税の対象外です。',rom:'모시와케 고자이마센, 멘제이노 타이쇼가이데스',kr:'죄송해요, 면세 대상이 아니에요.'},
+    {jp:'5,000円以上のお買い上げで免税になります。',rom:'고센엔 이죠우노 오카이아게데 멘제이니 나리마스',kr:'5,000엔 이상 구매 시 면세 적용됩니다.'}
+  ],
+};
+
+let currentPhrases = [];
+let activePhraseIdx = 0;
 
 /* ===== 동적 표현 DB (localStorage) ===== */
 function getFullDB() {
