@@ -269,6 +269,28 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .foodInp:focus{border-color:var(--red);}
 .foodBtn{padding:9px 14px;background:var(--red);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;cursor:pointer;white-space:nowrap;}
 .resultLoader{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink3);padding:8px 0;}
+
+/* ===== 교통 길찾기 개선 ===== */
+.routePresets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.routePreset{background:var(--bg);border:0.5px solid var(--bdr);border-radius:11px;padding:10px 11px;cursor:pointer;transition:all .15s;text-align:left;}
+.routePreset:active{background:var(--red-l);border-color:var(--red-m);}
+.rpIcon{font-size:18px;margin-bottom:4px;}
+.rpLabel{font-size:12px;font-weight:600;color:var(--ink);line-height:1.3;margin-bottom:2px;}
+.rpHint{font-size:10px;color:var(--ink3);}
+.dirResult{margin-top:12px;}
+.dirHdr{background:var(--red);color:#fff;border-radius:11px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.dirHdrLeft{}
+.dirTotal{font-size:20px;font-weight:700;}
+.dirFare{font-size:12px;opacity:.85;margin-top:2px;}
+.dirGmapBtn{background:rgba(255,255,255,0.2);border:none;border-radius:8px;color:#fff;font-family:var(--font);font-size:11px;font-weight:500;padding:7px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.dirSteps{display:flex;flex-direction:column;gap:6px;}
+.dirStep{background:var(--card);border:0.5px solid var(--bdr);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;}
+.dirStepIcon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px;}
+.dirStepBody{flex:1;}
+.dirStepMain{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px;}
+.dirStepSub{font-size:11px;color:var(--ink3);line-height:1.5;}
+.dirLineBadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-bottom:3px;}
+.dirStepTime{font-size:11px;font-weight:600;color:var(--ink2);flex-shrink:0;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -449,13 +471,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
       <!-- 교통·길찾기 -->
       <div class="transView" id="wTransit">
         <div class="scroll" style="padding:14px;">
+          <!-- 경로 검색 -->
           <div class="tCard">
             <div class="tTitle"><i class="ti ti-route"></i> 경로 검색</div>
-            <div class="rField"><div class="rdot" style="background:var(--red)"></div><input id="fromInp" placeholder="출발지 (예: 신주쿠역)"></div>
-            <div class="rField"><div class="rdot" style="border:1.5px solid var(--ink3)"></div><input id="toInp" placeholder="목적지 (예: 아사쿠사)"></div>
-            <button class="tGoBtn" onclick="askRoute()" style="margin-top:8px;">경로 알려줘</button>
+            <div class="rField"><div class="rdot" style="background:var(--red)"></div><input id="fromInp" placeholder="출발지 (예: 新宿駅, 신주쿠역)"></div>
+            <div class="rField"><div class="rdot" style="border:1.5px solid var(--ink3)"></div><input id="toInp" placeholder="목적지 (예: 浅草駅, 아사쿠사역)"></div>
+            <div style="display:flex;gap:7px;margin-top:8px;">
+              <button class="tGoBtn" style="flex:1" onclick="searchRoute()"><i class="ti ti-search" style="font-size:13px"></i> 경로 검색</button>
+              <button id="gmapRouteBtn" style="display:none;padding:10px 12px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:9px;font-family:var(--font);font-size:12px;color:#185FA5;cursor:pointer;white-space:nowrap;" onclick="openGmapRoute()"><i class="ti ti-brand-google-maps" style="font-size:13px"></i> 구글맵</button>
+            </div>
             <div id="routeResult"></div>
           </div>
+
+          <!-- 인기 구간 -->
+          <div class="tCard">
+            <div class="tTitle"><i class="ti ti-star"></i> 인기 구간</div>
+            <div class="routePresets" id="routePresets"></div>
+          </div>
+
+          <!-- IC카드 & 팁 -->
           <div class="tCard">
             <div class="tTitle"><i class="ti ti-credit-card"></i> IC카드 & 교통 팁</div>
             <div class="icGrid">
@@ -465,6 +499,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
               <div class="icTip"><div class="icIcon">🚖</div><div class="icName">택시</div><div class="icDesc">문 자동 개폐. GO 앱으로 호출 추천</div></div>
             </div>
           </div>
+
+          <!-- 교통 궁금증 -->
           <div class="tCard">
             <div class="tTitle"><i class="ti ti-help-circle"></i> 교통 궁금증</div>
             <div class="foodIRow">
@@ -1591,15 +1627,116 @@ document.getElementById('qchips').addEventListener('click', e => {
   }
 });
 
-async function askRoute() {
-  const from = document.getElementById('fromInp').value.trim();
-  const to = document.getElementById('toInp').value.trim(); if (!from || !to) return;
-  document.getElementById('routeResult').innerHTML = '<div class="resultLoader"><div class="ld"><span></span><span></span><span></span></div> 경로 검색 중...</div>';
-  try {
-    const reply = await callClaude(SYS_TRANSIT, [{ role: 'user', content: `${from}에서 ${to}까지 가는 방법. 지하철 노선, 환승, 소요시간, 요금 포함.` }]);
-    document.getElementById('routeResult').innerHTML = `<div class="tResult">${fmtPlain(reply)}</div>`;
-  } catch { document.getElementById('routeResult').innerHTML = '<div style="color:var(--red);font-size:13px">오류가 발생했어요.</div>'; }
+const POPULAR_ROUTES = [
+  { icon:'✈️', label:'나리타공항 → 신주쿠', hint:'약 80~90분', from:'成田空港', to:'新宿駅' },
+  { icon:'✈️', label:'하네다공항 → 신주쿠', hint:'약 30분', from:'羽田空港第3ターミナル駅', to:'新宿駅' },
+  { icon:'🏯', label:'신주쿠 → 아사쿠사', hint:'약 40분', from:'新宿駅', to:'浅草駅' },
+  { icon:'🗼', label:'신주쿠 → 도쿄타워', hint:'약 25분', from:'新宿駅', to:'東京タワー' },
+  { icon:'🛍️', label:'신주쿠 → 시부야', hint:'약 5분', from:'新宿駅', to:'渋谷駅' },
+  { icon:'🌸', label:'도쿄역 → 우에노', hint:'약 10분', from:'東京駅', to:'上野駅' },
+];
+
+function initRoutePresets() {
+  const el = document.getElementById('routePresets');
+  el.innerHTML = POPULAR_ROUTES.map((r, i) => `
+    <div class="routePreset" onclick="usePreset(${i})">
+      <div class="rpIcon">${r.icon}</div>
+      <div class="rpLabel">${r.label}</div>
+      <div class="rpHint">${r.hint}</div>
+    </div>`).join('');
 }
+
+function usePreset(i) {
+  const r = POPULAR_ROUTES[i];
+  document.getElementById('fromInp').value = r.from;
+  document.getElementById('toInp').value = r.to;
+  searchRoute();
+  document.getElementById('wTransit').querySelector('.scroll').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openGmapRoute() {
+  const from = document.getElementById('fromInp').value.trim();
+  const to = document.getElementById('toInp').value.trim();
+  if (!from || !to) return;
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`;
+  window.open(url, '_blank');
+}
+
+async function searchRoute() {
+  const from = document.getElementById('fromInp').value.trim();
+  const to = document.getElementById('toInp').value.trim();
+  if (!from || !to) return;
+  const res = document.getElementById('routeResult');
+  const gmBtn = document.getElementById('gmapRouteBtn');
+  res.innerHTML = '<div class="resultLoader"><div class="ld"><span></span><span></span><span></span></div> 경로 검색 중...</div>';
+  gmBtn.style.display = 'none';
+  try {
+    const r = await fetch(`/api/maps?type=directions&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`);
+    const d = await r.json();
+    if (d.status !== 'OK' || !d.routes?.length) {
+      // Directions API 실패 → Claude 폴백
+      const reply = await callClaude(SYS_TRANSIT, [{ role:'user', content:`${from}에서 ${to}까지 대중교통 경로. 노선명, 환승역, 소요시간, 요금 포함.` }]);
+      res.innerHTML = `<div class="tResult" style="margin-top:10px">${fmtPlain(reply)}</div>`;
+      gmBtn.style.display = '';
+      return;
+    }
+    res.innerHTML = renderDirections(d, from, to);
+    gmBtn.style.display = '';
+  } catch {
+    res.innerHTML = '<div style="color:var(--red);font-size:13px;margin-top:8px">오류가 발생했어요.</div>';
+  }
+}
+
+function renderDirections(data, from, to) {
+  const leg = data.routes[0].legs[0];
+  const fare = data.routes[0].fare;
+  const totalTime = leg.duration.text;
+  const fareText = fare ? fare.text : '';
+
+  const steps = leg.steps.map(s => {
+    const isWalk = s.travel_mode === 'WALKING';
+    const td = s.transit_details;
+    if (isWalk) {
+      return `<div class="dirStep">
+        <div class="dirStepIcon" style="background:var(--bg)">🚶</div>
+        <div class="dirStepBody">
+          <div class="dirStepMain">도보 이동</div>
+          <div class="dirStepSub">${s.distance?.text || ''} · ${s.duration?.text || ''}</div>
+        </div>
+        <div class="dirStepTime">${s.duration?.text || ''}</div>
+      </div>`;
+    }
+    if (!td) return '';
+    const line = td.line;
+    const color = line.color || '#555';
+    const textColor = line.text_color || '#fff';
+    const lineName = line.short_name || line.name || '';
+    const vehicle = line.vehicle?.type || 'SUBWAY';
+    const vehicleIcon = vehicle === 'BUS' ? '🚌' : vehicle === 'TRAM' ? '🚃' : '🚇';
+    return `<div class="dirStep">
+      <div class="dirStepIcon" style="background:${color}">${vehicleIcon}</div>
+      <div class="dirStepBody">
+        ${lineName ? `<div class="dirLineBadge" style="background:${color};color:${textColor}">${lineName}</div>` : ''}
+        <div class="dirStepMain">${td.departure_stop?.name || ''} → ${td.arrival_stop?.name || ''}</div>
+        <div class="dirStepSub">${td.num_stops || 0}정거장 · ${td.departure_time?.text || ''} 출발</div>
+      </div>
+      <div class="dirStepTime">${s.duration?.text || ''}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  return `<div class="dirResult">
+    <div class="dirHdr">
+      <div class="dirHdrLeft">
+        <div class="dirTotal">🕐 ${totalTime}</div>
+        ${fareText ? `<div class="dirFare">💴 ${fareText}</div>` : ''}
+      </div>
+    </div>
+    <div class="dirSteps">${steps}</div>
+  </div>`;
+}
+
+// 기존 호환
+async function askRoute() { await searchRoute(); }
 
 async function askTransit() {
   const q = document.getElementById('transitQ').value.trim(); if (!q) return;
@@ -1613,6 +1750,7 @@ async function askTransit() {
 /* ===== Init ===== */
 renderList();
 renderPhotoSlots();
+initRoutePresets();
 </script>
 </body>
 </html>

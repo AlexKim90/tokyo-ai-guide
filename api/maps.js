@@ -97,6 +97,13 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ isList: true, listName, places });
 
+    } else if (type === 'directions') {
+      const { origin, destination } = req.query;
+      if (!origin || !destination) return res.status(400).json({ error: 'Missing origin/destination' });
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=transit&language=ko&departure_time=now&key=${key}`;
+      const r = await fetch(url);
+      return res.status(200).json(await r.json());
+
     } else {
       return res.status(400).json({ error: 'Invalid type' });
     }
