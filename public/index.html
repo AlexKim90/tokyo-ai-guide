@@ -318,7 +318,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
     <div class="panel on" id="panel-list">
       <div class="listHdr">
         <button class="primary" onclick="openAddModal()"><i class="ti ti-search" style="font-size:14px"></i> 장소 검색</button>
-        <button onclick="openPasteModal()"><i class="ti ti-link" style="font-size:14px"></i> 구글맵 링크</button>
+        <button onclick="openGoogleMapsPopup()"><i class="ti ti-brand-google-maps" style="font-size:14px"></i> 구글 리스트</button>
+        <button onclick="openPasteModal()" style="padding:9px 10px;"><i class="ti ti-link" style="font-size:14px"></i></button>
       </div>
       <div class="scroll" id="listBody" style="padding-top:10px;"></div>
     </div>
@@ -515,6 +516,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 
   </div><!-- /panels -->
 </div><!-- /app -->
+
+<!-- Modal: 구글맵 팝업 안내 -->
+<div class="modal" id="gmapsGuideModal">
+  <div class="modalBg" onclick="closeModal('gmapsGuideModal')"></div>
+  <div class="modalSheet">
+    <div class="modalHandle"></div>
+    <div class="modalTitle">구글 저장 리스트 가져오기</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px;background:var(--bg);border-radius:10px;">
+        <div style="width:24px;height:24px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+        <div style="font-size:13px;color:var(--ink);line-height:1.6">구글맵이 열리면 <strong>저장한 리스트</strong>를 선택하세요</div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px;background:var(--bg);border-radius:10px;">
+        <div style="width:24px;height:24px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0">2</div>
+        <div style="font-size:13px;color:var(--ink);line-height:1.6">리스트 화면에서 <strong>점 3개 메뉴 → 공유 → 링크 복사</strong></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px;background:var(--bg);border-radius:10px;">
+        <div style="width:24px;height:24px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+        <div style="font-size:13px;color:var(--ink);line-height:1.6">창을 닫으면 <strong>자동으로 감지</strong>해서 바로 불러와요</div>
+      </div>
+    </div>
+    <button class="modalBtn" onclick="launchGmapsAndWait()"><i class="ti ti-brand-google-maps" style="font-size:14px"></i> 구글맵 열기</button>
+    <div id="gmapsGuideStatus" style="margin-top:10px;font-size:12px;color:var(--ink3);text-align:center;display:none"></div>
+  </div>
+</div>
 
 <!-- Modal: 장소 검색 -->
 <div class="modal" id="addModal">
@@ -1872,6 +1898,55 @@ async function askTransit() {
     const reply = await callClaude(SYS_TRANSIT, [{ role: 'user', content: q }]);
     document.getElementById('transitResult').innerHTML = `<div class="tResult">${fmtPlain(reply)}</div>`;
   } catch { document.getElementById('transitResult').innerHTML = '<div style="color:var(--red);font-size:13px">오류가 발생했어요.</div>'; }
+}
+
+/* ===== 구글맵 팝업 연동 ===== */
+function openGoogleMapsPopup() {
+  document.getElementById('gmapsGuideModal').classList.add('on');
+}
+
+function launchGmapsAndWait() {
+  const statusEl = document.getElementById('gmapsGuideStatus');
+  // 구글맵 저장 장소 페이지로 팝업 오픈
+  const popup = window.open(
+    'https://www.google.com/maps/saved',
+    'gmaps_saved',
+    'width=430,height=700,scrollbars=yes,resizable=yes'
+  );
+
+  if (!popup) {
+    // 팝업 차단된 경우 → 새 탭으로 열고 수동 붙여넣기 안내
+    window.open('https://www.google.com/maps/saved', '_blank');
+    statusEl.style.display = '';
+    statusEl.innerHTML = '팝업이 차단됐어요. 구글맵에서 링크 복사 후 <span style="color:var(--red);cursor:pointer" onclick="closeModal(\'gmapsGuideModal\');openPasteModal()">여기에 붙여넣기</span>하세요.';
+    return;
+  }
+
+  statusEl.style.display = '';
+  statusEl.textContent = '구글맵에서 링크를 복사하고 창을 닫아주세요...';
+
+  // 팝업 닫힘 감지 → 클립보드 자동 읽기
+  const timer = setInterval(async () => {
+    if (!popup.closed) return;
+    clearInterval(timer);
+    statusEl.textContent = '클립보드 확인 중...';
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && (text.includes('maps.app.goo.gl') || text.includes('google.com/maps'))) {
+        closeModal('gmapsGuideModal');
+        // 자동으로 파싱 시작
+        document.getElementById('pasteInp').value = text;
+        openPasteModal();
+        await parsePasteUrl();
+      } else {
+        // 클립보드에 맵스 URL 없음 → 수동 붙여넣기 유도
+        statusEl.innerHTML = '링크가 감지되지 않았어요. <span style="color:var(--red);cursor:pointer" onclick="closeModal(\'gmapsGuideModal\');openPasteModal()">직접 붙여넣기</span>';
+      }
+    } catch {
+      // 클립보드 권한 없음 → 수동 안내
+      statusEl.innerHTML = '창을 닫으면 <span style="color:var(--red);cursor:pointer" onclick="closeModal(\'gmapsGuideModal\');openPasteModal()">여기서 링크를 붙여넣어</span> 주세요.';
+    }
+  }, 600);
 }
 
 /* ===== Init ===== */
