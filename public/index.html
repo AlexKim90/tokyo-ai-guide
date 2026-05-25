@@ -576,14 +576,69 @@ const PHRASE_DB = {
   ],
 };
 
-function renderPhraseCards(phrases) {
+function renderPhraseCards(phrases, dbKey) {
+  const badge = dbKey ? `<div style="font-size:10px;color:var(--ink3);margin-top:4px;padding:0 2px">📦 "${dbKey}" · 저장된 표현</div>` : '';
   return phrases.map(p => `<div class="tCard-inner">
     ${p.label ? `<div style="font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--ink3);margin-bottom:6px;text-transform:uppercase">${p.label}</div>` : ''}
     <div class="tCard-jp">${p.jp}</div>
     <div class="tCard-rom">${p.rom}</div>
     <div class="tCard-kr">${p.kr}</div>
     ${p.tip ? `<div class="tCard-tip">💡 ${p.tip}</div>` : ''}
-  </div>`).join('');
+  </div>`).join('') + badge;
+}
+
+/* ===== 동적 표현 DB (localStorage) ===== */
+function getFullDB() {
+  const userDB = JSON.parse(localStorage.getItem('phraseDB') || '{}');
+  return { ...PHRASE_DB, ...userDB };
+}
+
+function saveToUserDB(key, phrases) {
+  const userDB = JSON.parse(localStorage.getItem('phraseDB') || '{}');
+  userDB[key] = phrases;
+  localStorage.setItem('phraseDB', JSON.stringify(userDB));
+}
+
+function findDBKey(query) {
+  const db = getFullDB();
+  // 조사 제거 후 소문자 정규화
+  const q = query.replace(/[을를이가은는에서으로와과도만]/g, ' ').toLowerCase().trim();
+  const qWords = q.split(/\s+/).filter(w => w.length >= 2);
+  let bestKey = null, bestScore = 0;
+  for (const key of Object.keys(db)) {
+    const k = key.toLowerCase();
+    // 완전 포함
+    if (q.includes(k) || k.includes(q)) return key;
+    // 단어 겹침 점수
+    const kWords = k.split(/\s+/);
+    const score = kWords.reduce((acc, kw) => {
+      return acc + (qWords.some(qw => qw.includes(kw) || kw.includes(qw)) ? 1 : 0);
+    }, 0);
+    if (score > bestScore) { bestScore = score; bestKey = key; }
+  }
+  return bestScore >= 1 ? bestKey : null;
+}
+
+function queryToKey(msg) {
+  // 불필요한 어미 제거 → 간결한 카테고리 키
+  return msg
+    .replace(/\s*(알려줘|해줘|뭐야|뭐라고|어떻게|표현|일본어로|할때|할 때|에 대해|좀).*$/i, '')
+    .replace(/[을를이가은는에서으로와과]/g, '')
+    .trim()
+    .slice(0, 15) || msg.slice(0, 15);
+}
+
+function parseClaudeToPhrase(text) {
+  // 【일본어】【발음】【뜻】【팁】 블록 파싱
+  const blocks = text.split(/(?=【일본어】)/).filter(b => b.trim());
+  return blocks.map(block => {
+    const get = k => (block.match(new RegExp(`【${k}】([^\n【]+)`)) || [])[1]?.trim() || '';
+    const title = (block.match(/【표현제목】([^\n【]+)/) || [])[1]?.trim() || '';
+    const tip = (block.match(/【팁】([\s\S]+?)(?=【|$)/) || [])[1]?.trim() || '';
+    const jp = get('일본어'), rom = get('발음'), kr = get('뜻');
+    if (!jp) return null;
+    return { label: title, jp, rom, kr, tip };
+  }).filter(Boolean);
 }
 
 /* ===== State ===== */
@@ -1208,19 +1263,46 @@ function addLoader() {
 
 async function sendChat() {
   const inp = document.getElementById('ci'); const msg = inp.value.trim(); if (!msg) return;
-  inp.value = ''; addMsg('u', msg); addLoader();
+  inp.value = ''; addMsg('u', msg);
+
+  // 1. DB에서 먼저 찾기
+  const matchKey = findDBKey(msg);
+  if (matchKey) {
+    addMsg('a', renderPhraseCards(getFullDB()[matchKey], matchKey));
+    return;
+  }
+
+  // 2. DB에 없으면 Claude 호출
+  addLoader();
   try {
     const reply = await callClaude(SYS_TRANS, [{ role: 'user', content: msg }]);
-    document.getElementById('ld')?.remove(); addMsg('a', fmt(reply));
+    document.getElementById('ld')?.remove();
+
+    // 3. 구조화된 표현이면 DB 자동 저장
+    const phrases = parseClaudeToPhrase(reply);
+    if (phrases.length >= 2) {
+      const key = queryToKey(msg);
+      saveToUserDB(key, phrases);
+      addMsg('a', renderPhraseCards(phrases) + `<div style="font-size:10px;color:var(--ink3);margin-top:4px;padding:0 2px">💾 "${key}" 표현이 DB에 저장됐어요</div>`);
+    } else {
+      // 구조화 안 된 답변 (일반 질문 등)
+      addMsg('a', fmt(reply));
+    }
   } catch { document.getElementById('ld')?.remove(); addMsg('a', '오류가 발생했어요. 잠시 후 다시 시도해주세요.'); }
 }
 document.getElementById('ci').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 document.getElementById('qchips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
   const dbKey = c.dataset.db;
-  if (dbKey && PHRASE_DB[dbKey]) {
-    addMsg('u', c.textContent.trim());
-    addMsg('a', renderPhraseCards(PHRASE_DB[dbKey]));
+  if (dbKey) {
+    const db = getFullDB();
+    if (db[dbKey]) {
+      addMsg('u', c.textContent.trim());
+      addMsg('a', renderPhraseCards(db[dbKey]));
+    } else {
+      document.getElementById('ci').value = dbKey;
+      sendChat();
+    }
   } else if (c.dataset.q) {
     document.getElementById('ci').value = c.dataset.q;
     sendChat();
