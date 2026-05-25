@@ -751,7 +751,11 @@ function detectTags(name, category) {
 }
 
 function buildPlaceCard(p, i) {
-  const gmUrl = p.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' 도쿄')}`;
+  // 구 좌표 URL (/?q=lat,lng) → 업체명+좌표 딥링크로 자동 교정
+  const isOldCoordUrl = p.mapsUrl && /\/maps\/place\/\?q=-?\d/.test(p.mapsUrl);
+  const gmUrl = isOldCoordUrl
+    ? `https://www.google.com/maps/place/${encodeURIComponent(p.name)}/@${p.lat},${p.lng},17z`
+    : (p.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' 도쿄')}`);
   const rat = p.rating ? `⭐ ${p.rating}` : '';
   const tags = detectTags(p.name, p.category);
   const tagsHtml = tags.length ? `<div class="placeTags">${tags.map(t => `<span class="placeTag">${t}</span>`).join('')}</div>` : '';
