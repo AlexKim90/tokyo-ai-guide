@@ -1630,10 +1630,91 @@ document.getElementById('qchips').addEventListener('click', e => {
 const POPULAR_ROUTES = [
   { icon:'✈️', label:'나리타공항 → 신주쿠', hint:'약 80~90분', from:'成田空港', to:'新宿駅' },
   { icon:'✈️', label:'하네다공항 → 신주쿠', hint:'약 30분', from:'羽田空港第3ターミナル駅', to:'新宿駅' },
-  { icon:'🏯', label:'신주쿠 → 아사쿠사', hint:'약 40분', from:'新宿駅', to:'浅草駅' },
-  { icon:'🗼', label:'신주쿠 → 도쿄타워', hint:'약 25분', from:'新宿駅', to:'東京タワー' },
+  { icon:'🏯', label:'신주쿠 → 아사쿠사', hint:'약 35~40분', from:'新宿駅', to:'浅草駅' },
+  { icon:'🗼', label:'신주쿠 → 도쿄타워', hint:'약 20분', from:'新宿駅', to:'東京タワー' },
   { icon:'🛍️', label:'신주쿠 → 시부야', hint:'약 5분', from:'新宿駅', to:'渋谷駅' },
-  { icon:'🌸', label:'도쿄역 → 우에노', hint:'약 10분', from:'東京駅', to:'上野駅' },
+  { icon:'🌸', label:'도쿄역 → 우에노', hint:'약 8분', from:'東京駅', to:'上野駅' },
+];
+
+// ROUTE_DB: POPULAR_ROUTES와 같은 인덱스. 업데이트 시 여기만 수정.
+const ROUTE_DB = [
+  // 0: 나리타공항 → 신주쿠
+  {
+    totalTime: '약 80~90분',
+    options: [
+      { name:"Narita Express (N'EX)", time:'80분', fare:'¥3,070', tag:'편리·JR패스', color:'#E60012' },
+      { name:'케이세이 스카이라이너', time:'51분+환승', fare:'¥2,570', tag:'빠름' },
+      { name:'케이세이 특급', time:'약 90분', fare:'¥1,050', tag:'저렴' },
+    ],
+    steps: [
+      { type:'walk', duration:'5분', desc:'공항 B1F JR 개찰구로 이동' },
+      { type:'transit', icon:'🚄', line:"N'EX", lineColor:'#E60012', lineTextColor:'#fff', from:'成田空港', to:'新宿', stops:2, duration:'80분', note:'지정석 사전예약 추천' },
+    ],
+    tip:"N'EX는 JR패스 이용 가능. 스카이라이너는 케이세이 우에노역 도착 후 JR·메트로 환승 필요. IC카드로 케이세이 특급이 가장 저렴."
+  },
+  // 1: 하네다공항 → 신주쿠
+  {
+    totalTime: '약 30~40분',
+    options: [
+      { name:'케이큐선 직통', time:'30분', fare:'¥460', tag:'추천' },
+      { name:'도쿄 모노레일 + JR', time:'40분', fare:'¥620', tag:'풍경 좋음' },
+    ],
+    steps: [
+      { type:'transit', icon:'🚇', line:'京急線', lineColor:'#E60012', lineTextColor:'#fff', from:'羽田空港第3ターミナル', to:'新宿', stops:5, duration:'30분', note:'도에이 신주쿠선 직결 — 환승 없음' },
+    ],
+    tip:'IC카드(Suica/Pasmo) 바로 사용 가능. 국내선은 第1·第2터미널, 국제선은 第3터미널 이용.'
+  },
+  // 2: 신주쿠 → 아사쿠사
+  {
+    totalTime: '약 35~40분',
+    options: [
+      { name:'긴자선 (적환 1회)', time:'35분', fare:'¥210', tag:'추천' },
+      { name:'도에이 오에도선 → 아사쿠사선', time:'40분', fare:'¥290', tag:'직접' },
+    ],
+    steps: [
+      { type:'transit', icon:'🚇', line:'丸ノ内線', lineColor:'#E60012', lineTextColor:'#fff', from:'新宿', to:'赤坂見附', stops:5, duration:'10분', note:'마루노우치선 이케부쿠로 방향' },
+      { type:'walk', duration:'3분', desc:'긴자선 환승 (같은 역)' },
+      { type:'transit', icon:'🚇', line:'銀座線', lineColor:'#FF9500', lineTextColor:'#fff', from:'赤坂見附', to:'浅草', stops:6, duration:'15분', note:'긴자선 아사쿠사 방향 (오렌지)' },
+    ],
+    tip:'아사쿠사역 하차 후 도보 5분에 센소지. 긴자선 오렌지 노선이 직관적.'
+  },
+  // 3: 신주쿠 → 도쿄타워
+  {
+    totalTime: '약 20분',
+    options: [
+      { name:'도에이 오에도선 (아카바네바시)', time:'12분+도보5분', fare:'¥210', tag:'가장 가까움' },
+      { name:'히비야선 (카미야초)', time:'20분+도보7분', fare:'¥240', tag:'편리' },
+    ],
+    steps: [
+      { type:'transit', icon:'🚇', line:'大江戸線', lineColor:'#B6007A', lineTextColor:'#fff', from:'新宿', to:'赤羽橋', stops:6, duration:'12분', note:'도에이 오에도선 (자주색)' },
+      { type:'walk', duration:'5분', desc:'赤羽橋 출구 → 도쿄타워 정문' },
+    ],
+    tip:'赤羽橋(아카바네바시)역 赤羽橋口 출구 바로 앞에 도쿄타워. 입장료 별도 (¥1,200~).'
+  },
+  // 4: 신주쿠 → 시부야
+  {
+    totalTime: '약 5분',
+    options: [
+      { name:'JR 야마노테선', time:'5분', fare:'¥160', tag:'추천' },
+      { name:'후쿠토신선', time:'3분', fare:'¥170', tag:'빠름' },
+    ],
+    steps: [
+      { type:'transit', icon:'🚃', line:'山手線', lineColor:'#80C241', lineTextColor:'#fff', from:'新宿', to:'渋谷', stops:2, duration:'5분', note:'야마노테선 시나가와 방향 (외선)' },
+    ],
+    tip:'신주쿠–시부야는 도보 약 30분도 가능. 야마노테선이 가장 직관적이고 빈번 운행.'
+  },
+  // 5: 도쿄역 → 우에노
+  {
+    totalTime: '약 8분',
+    options: [
+      { name:'JR 야마노테선', time:'8분', fare:'¥160', tag:'추천' },
+      { name:'JR 게이힌토호쿠선', time:'8분', fare:'¥160', tag:'동일 요금' },
+    ],
+    steps: [
+      { type:'transit', icon:'🚃', line:'山手線', lineColor:'#80C241', lineTextColor:'#fff', from:'東京', to:'上野', stops:2, duration:'8분', note:'야마노테선 이케부쿠로 방향 (내선)' },
+    ],
+    tip:'우에노역 주변: 우에노 공원·도쿄국립박물관·아메요코 시장. 스카이트리는 우에노에서 추가 환승.'
+  },
 ];
 
 function initRoutePresets() {
@@ -1650,8 +1731,54 @@ function usePreset(i) {
   const r = POPULAR_ROUTES[i];
   document.getElementById('fromInp').value = r.from;
   document.getElementById('toInp').value = r.to;
-  searchRoute();
+  document.getElementById('gmapRouteBtn').style.display = '';
+  if (ROUTE_DB[i]) {
+    document.getElementById('routeResult').innerHTML = renderStoredRoute(ROUTE_DB[i]);
+  } else {
+    searchRoute();
+  }
   document.getElementById('wTransit').querySelector('.scroll').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderStoredRoute(route) {
+  const optionsHtml = route.options.map((o, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;${i < route.options.length-1 ? 'border-bottom:0.5px solid var(--bdr)' : ''}">
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink)">${o.name}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:1px">${o.time} · ${o.fare}</div>
+      </div>
+      <div style="font-size:10px;background:var(--red-l);color:var(--red);padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-left:8px">${o.tag}</div>
+    </div>`).join('');
+
+  const stepsHtml = route.steps.map(s => {
+    if (s.type === 'walk') return `<div class="dirStep">
+      <div class="dirStepIcon" style="background:var(--bg)">🚶</div>
+      <div class="dirStepBody">
+        <div class="dirStepMain">도보 이동</div>
+        <div class="dirStepSub">${s.desc} · ${s.duration}</div>
+      </div>
+      <div class="dirStepTime">${s.duration}</div>
+    </div>`;
+    return `<div class="dirStep">
+      <div class="dirStepIcon" style="background:${s.lineColor||'#555'}">${s.icon||'🚇'}</div>
+      <div class="dirStepBody">
+        <div class="dirLineBadge" style="background:${s.lineColor||'#555'};color:${s.lineTextColor||'#fff'}">${s.line}</div>
+        <div class="dirStepMain">${s.from} → ${s.to}</div>
+        <div class="dirStepSub">${s.stops}정거장 · ${s.duration}${s.note ? ' · '+s.note : ''}</div>
+      </div>
+      <div class="dirStepTime">${s.duration}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="dirResult">
+    <div class="dirHdr" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div class="dirTotal">🕐 ${route.totalTime}</div>
+      <div style="width:100%;background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px">${route.options.map(o=>`<div style="font-size:11px;color:#fff;display:flex;justify-content:space-between"><span>${o.name}</span><span>${o.time} · ${o.fare}</span></div>`).join('')}</div>
+    </div>
+    <div style="margin:10px 0 8px;font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase">추천 경로 상세</div>
+    <div class="dirSteps">${stepsHtml}</div>
+    ${route.tip ? `<div class="tipBox" style="margin-top:10px">💡 ${route.tip}</div>` : ''}
+  </div>`;
 }
 
 function openGmapRoute() {
