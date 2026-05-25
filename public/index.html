@@ -82,9 +82,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .placeActions a:last-child,.placeActions button:last-child{border-right:none;}
 .placeActions a:active,.placeActions button:active{background:var(--bg);}
 .placeActions .pa-gmap{color:#185FA5;}
-.placeActions .pa-nmap{color:#3B6D11;}
 .placeActions .pa-menu{color:var(--red);}
-.placeActions .pa-del{color:var(--ink3);}
+.placeActions .pa-del{color:#E24B4A;}
+.placeTags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;}
+.placeTag{font-size:10px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:20px;padding:2px 8px;color:var(--ink3);}
+/* Import selection UI */
+.importHdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+.importHdrTitle{font-size:13px;font-weight:500;color:var(--ink);}
+.importToggle{font-size:11px;color:var(--red);cursor:pointer;background:none;border:none;font-family:var(--font);}
+.importList{max-height:220px;overflow-y:auto;border:0.5px solid var(--bdr);border-radius:10px;margin-bottom:10px;}
+.importItem{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:0.5px solid var(--bdr);cursor:pointer;}
+.importItem:last-child{border-bottom:none;}
+.importItem:active{background:var(--bg);}
+.importCb{width:17px;height:17px;accent-color:var(--red);flex-shrink:0;margin-top:2px;cursor:pointer;}
+.importInfo{flex:1;}
+.importName{font-size:13px;font-weight:500;color:var(--ink);}
+.importAddr{font-size:10px;color:var(--ink3);margin-top:1px;}
+.importTags{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;}
+.importTag{font-size:10px;background:var(--red-l);color:var(--red);border-radius:20px;padding:1px 7px;}
+.importAddBtn{width:100%;padding:12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;}
+.importAddBtn:disabled{opacity:.4;}
 
 /* Modal */
 .modal{position:fixed;inset:0;z-index:100;display:none;align-items:flex-end;}
@@ -250,13 +267,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
         <button class="primary" onclick="openAddModal()"><i class="ti ti-search" style="font-size:14px"></i> 장소 검색</button>
         <button onclick="openPasteModal()"><i class="ti ti-link" style="font-size:14px"></i> 구글맵 링크</button>
       </div>
-      <div class="scroll" id="listBody" style="padding-top:10px;">
-        <div class="emptyState" id="listEmpty">
-          <div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div>
-          <div class="emptyTitle">저장된 장소가 없어요</div>
-          <div class="emptyDesc">탐색 탭에서 맛집을 검색하거나<br>구글맵 링크를 붙여넣어 추가하세요</div>
-        </div>
-      </div>
+      <div class="scroll" id="listBody" style="padding-top:10px;"></div>
     </div>
 
     <!-- ===== TAB 2: 탐색 ===== -->
@@ -509,6 +520,8 @@ const SYS_EXPLORE=`당신은 도쿄 여행 전문가입니다. 한국인 여행�
 
 /* ===== State ===== */
 let savedPlaces = JSON.parse(localStorage.getItem('tokyoPlaces') || '[]');
+let importPlaces = [];
+let importListName = '';
 let photos = [null, null, null, null]; // base64 per slot
 let currentPhotoSlot = 0;
 let analysisData = null; // parsed analysis result
@@ -577,22 +590,40 @@ function fmtPlain(t) {
 /* ===== TAB 1: 내 리스트 ===== */
 function renderList() {
   const body = document.getElementById('listBody');
-  const empty = document.getElementById('listEmpty');
-  const cards = savedPlaces.map((p, i) => buildPlaceCard(p, i)).join('');
   if (savedPlaces.length === 0) {
-    body.innerHTML = '';
-    body.appendChild(empty);
-    empty.style.display = 'flex';
+    body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div><div class="emptyTitle">저장된 장소가 없어요</div><div class="emptyDesc">탐색 탭에서 맛집을 검색하거나<br>구글맵 링크를 붙여넣어 추가하세요</div></div>`;
   } else {
-    empty.style.display = 'none';
+    const cards = savedPlaces.map((p, i) => buildPlaceCard(p, i)).join('');
     body.innerHTML = `<div style="padding-bottom:20px">${cards}</div>`;
   }
 }
 
+function detectTags(name, category) {
+  const s = ((name || '') + ' ' + (category || '')).toLowerCase();
+  const tags = [];
+  if (/라멘|ramen|ラーメン/.test(s)) tags.push('#라멘');
+  if (/스시|sushi|すし|초밥/.test(s)) tags.push('#스시');
+  if (/이자카야|izakaya|居酒屋/.test(s)) tags.push('#이자카야');
+  if (/카페|cafe|coffee|珈琲|コーヒー/.test(s)) tags.push('#카페');
+  if (/돈카츠|tonkatsu|とんかつ/.test(s)) tags.push('#돈카츠');
+  if (/야키니쿠|焼肉|yakiniku/.test(s)) tags.push('#야키니쿠');
+  if (/우동|udon|うどん/.test(s)) tags.push('#우동');
+  if (/소바|soba|そば/.test(s)) tags.push('#소바');
+  if (/golf|ゴルフ|골프/.test(s)) tags.push('#골프');
+  if (/호텔|hotel|ホテル/.test(s)) tags.push('#호텔');
+  if (/온천|温泉|ryokan|료칸/.test(s)) tags.push('#온천');
+  if (/shrine|神社|신사|temple|寺|사원/.test(s)) tags.push('#신사·사원');
+  if (/park|공원/.test(s)) tags.push('#공원');
+  if (/shopping|쇼핑|百貨|department/.test(s)) tags.push('#쇼핑');
+  if (/restaurant|食堂|식당/.test(s) && !tags.length) tags.push('#식당');
+  return tags.slice(0, 3);
+}
+
 function buildPlaceCard(p, i) {
   const gmUrl = p.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' 도쿄')}`;
-  const nmUrl = `https://map.naver.com/v5/search/${encodeURIComponent(p.name)}`;
   const rat = p.rating ? `⭐ ${p.rating}` : '';
+  const tags = detectTags(p.name, p.category);
+  const tagsHtml = tags.length ? `<div class="placeTags">${tags.map(t => `<span class="placeTag">${t}</span>`).join('')}</div>` : '';
   return `<div class="placeCard">
     <div class="placeCardTop">
       <div class="placeRow">
@@ -600,11 +631,11 @@ function buildPlaceCard(p, i) {
         <div class="placeCat">${p.category || '장소'}</div>
       </div>
       ${p.address ? `<div class="placeAddr"><i class="ti ti-map-pin" style="font-size:10px"></i>${p.address}</div>` : ''}
+      ${tagsHtml}
       ${rat ? `<div class="placeRating">${rat}${p.ratingCount ? ` (${p.ratingCount.toLocaleString()}개 리뷰)` : ''}</div>` : ''}
     </div>
     <div class="placeActions">
       <a class="pa-gmap" href="${gmUrl}" target="_blank"><i class="ti ti-brand-google-maps" style="font-size:13px"></i>구글맵</a>
-      <a class="pa-nmap" href="${nmUrl}" target="_blank"><i class="ti ti-map" style="font-size:13px"></i>네이버</a>
       <button class="pa-menu" onclick="goOnsite('${p.name.replace(/'/g,"\\'")}','${(p.category||'').replace(/'/g,"\\'")}')"><i class="ti ti-camera" style="font-size:13px"></i>현장</button>
       <button class="pa-del" onclick="deletePlace(${i})"><i class="ti ti-trash" style="font-size:13px"></i></button>
     </div>
@@ -685,15 +716,9 @@ async function parsePasteUrl() {
 
     // ---- 리스트 링크인 경우 ----
     if (d.isList && d.places?.length) {
-      res.innerHTML = `
-        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:8px">
-          📍 <strong>"${d.listName}"</strong> 리스트 발견 — ${d.places.length}개 장소
-        </div>
-        <div style="max-height:180px;overflow-y:auto;border:0.5px solid var(--bdr);border-radius:9px;margin-bottom:10px;">
-          ${d.places.map(p => `<div style="padding:7px 11px;font-size:12px;border-bottom:0.5px solid var(--bdr)"><strong>${p.name}</strong><div style="font-size:10px;color:var(--ink3);margin-top:1px">${p.address}</div></div>`).join('')}
-        </div>
-        <button class="modalBtn" onclick="importAllPlaces(${JSON.stringify(d.places).replace(/"/g,'&quot;')}, '${d.listName.replace(/'/g,"\\'")}')">모두 내 리스트에 추가 (${d.places.length}개)</button>
-      `;
+      importPlaces = d.places;
+      importListName = d.listName;
+      res.innerHTML = renderImportUI(d.places, d.listName);
       btn.disabled = false; btn.textContent = '장소 불러오기';
       return;
     }
@@ -713,9 +738,45 @@ async function parsePasteUrl() {
   btn.disabled = false; btn.textContent = '장소 불러오기';
 }
 
-function importAllPlaces(places, listName) {
+function renderImportUI(places, listName) {
+  const items = places.map((p, i) => {
+    const tags = detectTags(p.name, '').map(t => `<span class="importTag">${t}</span>`).join('');
+    return `<label class="importItem">
+      <input type="checkbox" class="importCb" checked data-idx="${i}" onchange="updateImportCount()">
+      <div class="importInfo">
+        <div class="importName">${p.name}</div>
+        <div class="importAddr">${p.address || ''}</div>
+        ${tags ? `<div class="importTags">${tags}</div>` : ''}
+      </div>
+    </label>`;
+  }).join('');
+  return `<div class="importHdr">
+    <div class="importHdrTitle">📍 "${listName}" — ${places.length}개</div>
+    <button class="importToggle" onclick="toggleSelectAll(this)">전체 해제</button>
+  </div>
+  <div class="importList">${items}</div>
+  <button class="importAddBtn" id="importAddBtn" onclick="importSelected()">선택 추가 (${places.length}개)</button>`;
+}
+
+function toggleSelectAll(btn) {
+  const cbs = [...document.querySelectorAll('#pasteResult .importCb')];
+  const allChecked = cbs.every(cb => cb.checked);
+  cbs.forEach(cb => cb.checked = !allChecked);
+  btn.textContent = allChecked ? '전체 선택' : '전체 해제';
+  updateImportCount();
+}
+
+function updateImportCount() {
+  const count = [...document.querySelectorAll('#pasteResult .importCb')].filter(cb => cb.checked).length;
+  const addBtn = document.getElementById('importAddBtn');
+  if (addBtn) { addBtn.textContent = `선택 추가 (${count}개)`; addBtn.disabled = count === 0; }
+}
+
+function importSelected() {
+  const cbs = [...document.querySelectorAll('#pasteResult .importCb')];
+  const selected = cbs.filter(cb => cb.checked).map(cb => importPlaces[parseInt(cb.dataset.idx)]);
   let added = 0;
-  for (const p of places) {
+  for (const p of selected) {
     if (!savedPlaces.find(s => s.name === p.name)) {
       savedPlaces.push({ ...p, category: '장소', rating: null });
       added++;
@@ -726,7 +787,7 @@ function importAllPlaces(places, listName) {
   closeModal('pasteModal');
   resetPasteModal();
   goToListTab();
-  alert(`"${listName}" 에서 ${added}개 장소를 추가했어요!`);
+  if (added > 0) alert(`${added}개 장소를 추가했어요!`);
 }
 
 async function addByName() {
