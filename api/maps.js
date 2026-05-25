@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           name,
           address: address.replace(/^일본\s*/, '').trim(),
           lat, lng,
-          mapsUrl: `https://www.google.com/maps/place/?q=${lat},${lng}`
+          mapsUrl: `https://www.google.com/maps/place/${encodeURIComponent(name)}/@${lat},${lng},17z`
         });
       }
 
