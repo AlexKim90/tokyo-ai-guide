@@ -752,18 +752,16 @@ function detectTags(name, category) {
 
 function buildPlaceCard(p, i) {
   let gmUrl;
-  if (p.lat && p.lng) {
-    // 리스트 임포트: 좌표 + 이름으로 업체 페이지 열기
-    gmUrl = `https://www.google.com/maps/place/${encodeURIComponent(p.name)}/@${p.lat},${p.lng},17z`;
-  } else if (p.placeId) {
-    // 검색 추가: place_id로 정확한 업체 페이지
+  if (p.placeId) {
+    // place_id가 있으면 가장 정확
     gmUrl = `https://www.google.com/maps/place/?q=place_id:${p.placeId}`;
-  } else if (p.mapsUrl && !p.mapsUrl.includes('?q=')) {
-    // 기존 정상 URL
+  } else if (p.mapsUrl && !p.mapsUrl.match(/\/place\/\?q=-?\d/)) {
+    // 정상 URL (구 좌표 URL 아닌 경우)
     gmUrl = p.mapsUrl;
   } else {
-    // 폴백: 이름으로 검색
-    gmUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' 도쿄')}`;
+    // 폴백: 이름+주소 검색
+    const q = encodeURIComponent([p.name, p.address].filter(Boolean).join(' '));
+    gmUrl = `https://www.google.com/maps/search/?api=1&query=${q}`;
   }
   const rat = p.rating ? `⭐ ${p.rating}` : '';
   const tags = detectTags(p.name, p.category);
@@ -919,11 +917,13 @@ function updateImportCount() {
 function importSelected() {
   const cbs = [...document.querySelectorAll('#pasteResult .importCb')];
   const selected = cbs.filter(cb => cb.checked).map(cb => importPlaces[parseInt(cb.dataset.idx)]);
-  let added = 0;
+  const toEnrich = [];
   for (const p of selected) {
     if (!savedPlaces.find(s => s.name === p.name)) {
-      savedPlaces.push({ ...p, category: '장소', rating: null });
-      added++;
+      // 즉시 저장: 이름+주소 검색 URL (안정적 폴백)
+      const searchQ = encodeURIComponent([p.name, p.address].filter(Boolean).join(' '));
+      savedPlaces.push({ ...p, category: '장소', rating: null, mapsUrl: `https://www.google.com/maps/search/?api=1&query=${searchQ}` });
+      toEnrich.push(p.name);
     }
   }
   localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
@@ -931,7 +931,35 @@ function importSelected() {
   closeModal('pasteModal');
   resetPasteModal();
   goToListTab();
-  if (added > 0) alert(`${added}개 장소를 추가했어요!`);
+  if (toEnrich.length) {
+    alert(`${toEnrich.length}개 장소를 추가했어요! 구글맵 링크를 정확히 연결하는 중...`);
+    enrichPlaceIds(toEnrich);
+  }
+}
+
+async function enrichPlaceIds(names) {
+  // 백그라운드로 place_id 조회 → mapsUrl 업그레이드
+  for (const name of names) {
+    try {
+      const r = await fetch(`/api/maps?type=search&query=${encodeURIComponent(name)}`);
+      const d = await r.json();
+      const match = (d.results || []).find(r => r.name === name) || d.results?.[0];
+      if (!match?.place_id) continue;
+      const detail = await getPlaceDetails(match.place_id);
+      const idx = savedPlaces.findIndex(p => p.name === name);
+      if (idx === -1) continue;
+      savedPlaces[idx] = {
+        ...savedPlaces[idx],
+        placeId: match.place_id,
+        rating: detail?.rating || null,
+        ratingCount: detail?.user_ratings_total || null,
+        mapsUrl: detail?.url || savedPlaces[idx].mapsUrl,
+        category: (match.types?.[0] || '장소').replace(/_/g, ' ')
+      };
+    } catch { /* 실패해도 기존 URL 유지 */ }
+  }
+  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  renderList();
 }
 
 async function addByName() {
