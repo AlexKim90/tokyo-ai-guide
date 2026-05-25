@@ -456,10 +456,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   <div class="modalSheet">
     <div class="modalHandle"></div>
     <div class="modalTitle">구글맵 링크 붙여넣기</div>
-    <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.6">구글맵에서 공유하기 → 링크 복사 후 여기에 붙여넣으세요</div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.6">구글맵 → 공유하기 → 링크 복사 후 붙여넣으세요</div>
     <input class="modalInp" id="pasteInp" placeholder="https://maps.app.goo.gl/...">
     <button class="modalBtn" id="pasteBtn" onclick="parsePasteUrl()">장소 불러오기</button>
     <div id="pasteResult" style="margin-top:8px;font-size:12px;color:var(--ink3)"></div>
+    <!-- 폴백: 장소명 직접 입력 -->
+    <div id="pasteFallback" style="display:none;margin-top:14px;">
+      <div class="divider">또는 장소명 직접 입력</div>
+      <input class="modalInp" id="pasteNameInp" placeholder="예: 이치란 라멘 신주쿠점">
+      <button class="modalBtn" onclick="addByName()">이름으로 검색 후 추가</button>
+      <div id="pasteNameResult" style="margin-top:8px;"></div>
+    </div>
   </div>
 </div>
 
@@ -671,44 +678,70 @@ async function parsePasteUrl() {
   const btn = document.getElementById('pasteBtn');
   const res = document.getElementById('pasteResult');
   btn.disabled = true; btn.textContent = '불러오는 중...';
-  res.textContent = '';
+  res.textContent = ''; res.style.color = 'var(--ink3)';
   try {
-    let name = null, placeId = null;
-    // Try to parse directly first
-    const nameMatch = url.match(/\/maps\/place\/([^\/@?]+)/);
-    if (nameMatch) name = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '));
-    // If short URL, expand via API
-    if (!name || url.includes('goo.gl')) {
-      const r = await fetch(`/api/maps?type=expand&url=${encodeURIComponent(url)}`);
-      const d = await r.json();
-      if (d.name) name = d.name;
-      if (d.placeId) placeId = d.placeId;
+    const r = await fetch(`/api/maps?type=expand&url=${encodeURIComponent(url)}`);
+    const d = await r.json();
+    const name = d.name;
+
+    if (!name) {
+      res.textContent = '링크에서 장소명을 찾지 못했어요. 아래에 장소명을 직접 입력해주세요.';
+      document.getElementById('pasteFallback').style.display = 'block';
+      btn.disabled = false; btn.textContent = '장소 불러오기';
+      return;
     }
-    if (!name) { res.textContent = '장소를 인식하지 못했어요. 직접 검색을 이용해주세요.'; return; }
-    // Get details
-    const results = await searchPlaces(name);
-    const r = results[0];
-    const detail = r ? await getPlaceDetails(r.place_id) : null;
-    savePlace({
-      name: detail?.name || name,
-      category: r?.types?.[0]?.replace(/_/g, ' ') || '장소',
-      address: detail?.formatted_address || '',
-      rating: detail?.rating,
-      ratingCount: detail?.user_ratings_total,
-      mapsUrl: detail?.url || url,
-      placeId: r?.place_id
-    });
-    closeModal('pasteModal');
-    document.getElementById('pasteInp').value = '';
-    // Switch to list tab
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
-    document.querySelector('[data-tab="list"]').classList.add('on');
-    document.getElementById('panel-list').classList.add('on');
+    await addPlaceByName(name, url);
   } catch (e) {
-    res.textContent = '오류가 발생했어요. 다시 시도해주세요.';
+    res.textContent = '오류가 발생했어요. 아래에 장소명을 직접 입력해주세요.';
+    document.getElementById('pasteFallback').style.display = 'block';
   }
   btn.disabled = false; btn.textContent = '장소 불러오기';
+}
+
+async function addByName() {
+  const name = document.getElementById('pasteNameInp').value.trim(); if (!name) return;
+  document.getElementById('pasteNameResult').innerHTML = '<div class="resultLoader"><div class="ld"><span></span><span></span><span></span></div> 검색 중...</div>';
+  await addPlaceByName(name, null);
+}
+
+async function addPlaceByName(name, originalUrl) {
+  try {
+    const results = await searchPlaces(name);
+    if (!results.length) {
+      // 검색 결과 없어도 이름만으로 저장
+      savePlace({ name, category: '장소', address: '', rating: null, mapsUrl: originalUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' 도쿄')}` });
+      goToListTab(); closeModal('pasteModal'); resetPasteModal(); return;
+    }
+    const top = results[0];
+    const detail = await getPlaceDetails(top.place_id);
+    savePlace({
+      name: detail?.name || top.name,
+      category: (top.types?.[0] || '장소').replace(/_/g, ' '),
+      address: detail?.formatted_address || top.formatted_address || '',
+      rating: detail?.rating || top.rating,
+      ratingCount: detail?.user_ratings_total || top.user_ratings_total,
+      mapsUrl: detail?.url || originalUrl || `https://www.google.com/maps/search/?api=1&query_place_id=${top.place_id}`,
+      placeId: top.place_id
+    });
+    goToListTab(); closeModal('pasteModal'); resetPasteModal();
+  } catch {
+    document.getElementById('pasteNameResult').innerHTML = '<div style="color:var(--red);font-size:12px">오류가 발생했어요.</div>';
+  }
+}
+
+function goToListTab() {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelector('[data-tab="list"]').classList.add('on');
+  document.getElementById('panel-list').classList.add('on');
+}
+
+function resetPasteModal() {
+  document.getElementById('pasteInp').value = '';
+  document.getElementById('pasteResult').textContent = '';
+  document.getElementById('pasteFallback').style.display = 'none';
+  document.getElementById('pasteNameInp').value = '';
+  document.getElementById('pasteNameResult').innerHTML = '';
 }
 
 /* ===== TAB 2: 탐색 ===== */

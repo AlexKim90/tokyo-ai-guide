@@ -14,14 +14,41 @@ export default async function handler(req, res) {
       const r = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${place_id}&fields=${fields}&language=ko&key=${key}`);
       return res.status(200).json(await r.json());
     } else if (type === 'expand') {
-      // Expand short Google Maps URLs (goo.gl, maps.app.goo.gl)
       if (!url) return res.status(400).json({ error: 'Missing url' });
-      const r = await fetch(url, { redirect: 'follow' });
+
+      // 1) Try to parse place name directly from full URL
+      const directMatch = url.match(/\/maps\/place\/([^\/@?]+)/);
+      if (directMatch) {
+        const name = decodeURIComponent(directMatch[1].replace(/\+/g, ' '));
+        return res.status(200).json({ name, finalUrl: url });
+      }
+
+      // 2) For short URLs (maps.app.goo.gl, goo.gl) — fetch with mobile UA to trigger redirect
+      const r = await fetch(url, {
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
+        }
+      });
       const finalUrl = r.url;
-      const nameMatch = finalUrl.match(/\/maps\/place\/([^\/@?]+)/);
+      const html = await r.text();
+
+      // 3) Try to find destination URL embedded in HTML / JS
+      const htmlPatterns = [
+        /"(https:\/\/www\.google\.com\/maps\/place\/[^"]+)"/,
+        /'(https:\/\/www\.google\.com\/maps\/place\/[^']+)'/,
+        /href="(https:\/\/www\.google\.com\/maps\/place\/[^"]+)"/,
+        /"link"\s*:\s*"(https?:\/\/[^"]+maps[^"]+)"/,
+      ];
+      let destUrl = finalUrl;
+      for (const pat of htmlPatterns) {
+        const m = html.match(pat);
+        if (m) { destUrl = m[1]; break; }
+      }
+
+      const nameMatch = destUrl.match(/\/maps\/place\/([^\/@?]+)/);
       const name = nameMatch ? decodeURIComponent(nameMatch[1].replace(/\+/g, ' ')) : null;
-      const placeIdMatch = finalUrl.match(/place_id=([^&]+)/);
-      return res.status(200).json({ finalUrl, name, placeId: placeIdMatch?.[1] || null });
+      return res.status(200).json({ finalUrl: destUrl, name });
     } else {
       return res.status(400).json({ error: 'Invalid type' });
     }
