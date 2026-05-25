@@ -402,12 +402,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
           </div>
         </div>
         <div class="qchips" id="qchips">
-          <div class="chip" data-q="식당에서 주문할 때 쓰는 말 알려줘">🍜 식당 주문</div>
-          <div class="chip" data-q="편의점 계산할 때 쓸 말 알려줘">🏪 편의점</div>
-          <div class="chip" data-q="길 물어볼 때 쓰는 일본어 알려줘">🗺️ 길 묻기</div>
-          <div class="chip" data-q="호텔 체크인할 때 쓰는 말 알려줘">🏨 체크인</div>
-          <div class="chip" data-q="아파요 병원가야해요를 일본어로">🏥 응급</div>
-          <div class="chip" data-q="이거 얼마예요를 일본어로">💴 쇼핑</div>
+          <div class="chip" data-db="식당 주문">🍜 식당 주문</div>
+          <div class="chip" data-db="편의점">🏪 편의점</div>
+          <div class="chip" data-db="길 묻기">🗺️ 길 묻기</div>
+          <div class="chip" data-db="체크인">🏨 체크인</div>
+          <div class="chip" data-db="응급">🏥 응급</div>
+          <div class="chip" data-db="쇼핑">💴 쇼핑</div>
         </div>
         <div class="iRow">
           <input class="ci" id="ci" placeholder="상황을 입력하세요...">
@@ -517,6 +517,74 @@ const SYS_PLAN=`당신은 도쿄 여행 전문 AI 플래너입니다. 한국인 
 const SYS_TRANSIT=`당신은 도쿄 교통 전문가입니다. 지하철, 버스, 택시, IC카드 등 도쿄 교통을 쉽고 실용적으로 안내하세요. 경로 안내 시 구체적인 노선명, 환승역, 소요 시간, 요금 포함. 마크다운 없이 일반 텍스트로.`;
 
 const SYS_EXPLORE=`당신은 도쿄 여행 전문가입니다. 한국인 여행자에게 맛집, 관광지를 추천해주세요. 구체적인 가게명, 위치, 가격대, 특징을 포함해 실용적으로. 마크다운 없이 일반 텍스트로.`;
+
+/* ===== 로컬 표현 DB (API 호출 없이 즉시 렌더링) ===== */
+const PHRASE_DB = {
+  '식당 주문': [
+    { label:'인원수', jp:'二人です。', rom:'후타리데스', kr:'두 명이에요.', tip:'혼자면 一人(히토리), 세 명이면 三人(산닌)' },
+    { label:'예약 없어요', jp:'予約していません。', rom:'요야쿠시테이마센', kr:'예약 안 했어요.' },
+    { label:'메뉴 주세요', jp:'メニューをください。', rom:'메뉴오 쿠다사이', kr:'메뉴판 주세요.', tip:'영어 메뉴는 英語のメニュー(에이고노 메뉴)' },
+    { label:'이걸로 주세요', jp:'これをください。', rom:'코레오 쿠다사이', kr:'이걸로 주세요.', tip:'손가락으로 메뉴를 가리키며 사용' },
+    { label:'물 주세요', jp:'お水をください。', rom:'오미즈오 쿠다사이', kr:'물 주세요.', tip:'대부분 무료. 따뜻한 물은 お湯(오유)' },
+    { label:'계산해 주세요', jp:'お会計をお願いします。', rom:'오카이케이오 오네가이시마스', kr:'계산해 주세요.', tip:'손을 들고 チェック(체크)라고 해도 됨' },
+    { label:'카드 되나요?', jp:'カードで払えますか？', rom:'카도데 하라에마스카', kr:'카드로 낼 수 있어요?', tip:'현금만 받는 식당도 많으니 미리 확인' },
+    { label:'맛있어요!', jp:'おいしいです！', rom:'오이시이데스', kr:'맛있어요!', tip:'요리사에게 최고의 칭찬' },
+  ],
+  '편의점': [
+    { label:'봉투 주세요', jp:'袋をください。', rom:'후쿠로오 쿠다사이', kr:'봉투 주세요.', tip:'일본은 유료 봉투, 필요하면 직접 요청' },
+    { label:'데워 주세요', jp:'温めてください。', rom:'아타타메테 쿠다사이', kr:'데워 주세요.', tip:'도시락, 호빵 살 때 사용' },
+    { label:'젓가락 주세요', jp:'お箸をください。', rom:'오하시오 쿠다사이', kr:'젓가락 주세요.', tip:'포크는 フォーク(포쿠)' },
+    { label:'IC카드로 낼게요', jp:'Suicaで払います。', rom:'스이카데 하라이마스', kr:'스이카로 낼게요.', tip:'IC카드 종류에 따라 Pasmoで도 OK' },
+    { label:'카드로 낼게요', jp:'カードで払います。', rom:'카도데 하라이마스', kr:'카드로 낼게요.' },
+    { label:'영수증 주세요', jp:'レシートをください。', rom:'레시토오 쿠다사이', kr:'영수증 주세요.' },
+    { label:'이거 어디 있어요?', jp:'これはどこにありますか？', rom:'코레와 도코니 아리마스카', kr:'이거 어디 있어요?', tip:'핸드폰으로 물건 사진 보여주며 사용' },
+  ],
+  '길 묻기': [
+    { label:'어디예요?', jp:'～はどこですか？', rom:'～와 도코데스카', kr:'～은 어디예요?', tip:'장소 이름을 앞에 붙여 사용. 지도 보여주면 더 쉬움' },
+    { label:'길을 잃었어요', jp:'道に迷いました。', rom:'미치니 마요이마시타', kr:'길을 잃었어요.', tip:'Google Maps를 보여주며 사용하면 효과적' },
+    { label:'여기 가고 싶어요', jp:'ここに行きたいです。', rom:'코코니 이키타이데스', kr:'여기 가고 싶어요.', tip:'지도나 주소를 보여주면서 사용' },
+    { label:'걸어서 얼마나요?', jp:'歩いてどのくらいかかりますか？', rom:'아루이테 도노쿠라이 카카리마스카', kr:'걸어서 얼마나 걸려요?' },
+    { label:'가장 가까운 역', jp:'一番近い駅はどこですか？', rom:'이치방 치카이 에키와 도코데스카', kr:'가장 가까운 역이 어디예요?' },
+    { label:'감사합니다', jp:'ありがとうございました。', rom:'아리가토우 고자이마시타', kr:'감사합니다.', tip:'도움 받은 후 꼭 인사' },
+  ],
+  '체크인': [
+    { label:'예약했어요', jp:'予約しています。', rom:'요야쿠시테이마스', kr:'예약했어요.', tip:'예약 확인서를 보여주거나 이름을 영어로 말하기' },
+    { label:'체크인', jp:'チェックインをお願いします。', rom:'체크인오 오네가이시마스', kr:'체크인 부탁해요.' },
+    { label:'체크아웃', jp:'チェックアウトをお願いします。', rom:'체크아웃오 오네가이시마스', kr:'체크아웃 부탁해요.' },
+    { label:'와이파이 비밀번호', jp:'Wi-Fiのパスワードを教えてください。', rom:'와이파이노 파스와도오 오시에테 쿠다사이', kr:'와이파이 비밀번호 알려주세요.' },
+    { label:'수건 더 주세요', jp:'タオルをもう一枚ください。', rom:'타오루오 모우 이치마이 쿠다사이', kr:'수건 한 장 더 주세요.' },
+    { label:'짐 맡겨도 될까요?', jp:'荷物を預けてもいいですか？', rom:'니모츠오 아즈케테모 이이데스카', kr:'짐 맡겨도 될까요?', tip:'체크인 전이나 체크아웃 후 짐 보관 시 활용' },
+    { label:'방 바꿔주세요', jp:'部屋を変えてもらえますか？', rom:'헤야오 카에테 모라에마스카', kr:'방을 바꿀 수 있을까요?' },
+  ],
+  '응급': [
+    { label:'도와주세요!', jp:'助けてください！', rom:'타스케테 쿠다사이', kr:'도와주세요!', tip:'크게 외치세요. 일본인은 바로 반응합니다' },
+    { label:'아파요', jp:'具合が悪いです。', rom:'구아이가 와루이데스', kr:'몸이 안 좋아요.' },
+    { label:'구급차 불러주세요', jp:'救急車を呼んでください！', rom:'큐큐샤오 욘데 쿠다사이', kr:'구급차 불러 주세요!', tip:'일본 응급 전화 119' },
+    { label:'경찰 불러주세요', jp:'警察を呼んでください！', rom:'케이사츠오 욘데 쿠다사이', kr:'경찰 불러 주세요!', tip:'일본 경찰 전화 110' },
+    { label:'병원에 데려다 주세요', jp:'病院に連れて行ってください。', rom:'뵤인니 츠레테 잇테 쿠다사이', kr:'병원에 데려다 주세요.' },
+    { label:'여기가 아파요', jp:'ここが痛いです。', rom:'코코가 이타이데스', kr:'여기가 아파요.', tip:'아픈 부위를 손가락으로 가리키며 사용' },
+    { label:'약 주세요', jp:'薬をください。', rom:'쿠스리오 쿠다사이', kr:'약 주세요.', tip:'두통약 頭痛薬(즈츠야쿠), 소화제 胃薬(이구스리)' },
+  ],
+  '쇼핑': [
+    { label:'얼마예요?', jp:'これはいくらですか？', rom:'코레와 이쿠라데스카', kr:'이거 얼마예요?', tip:'핸드폰 계산기로 보여달라고 해도 됨' },
+    { label:'입어봐도 돼요?', jp:'試着してもいいですか？', rom:'시챠쿠시테모 이이데스카', kr:'입어봐도 될까요?' },
+    { label:'다른 색 있어요?', jp:'他の色はありますか？', rom:'호카노 이로와 아리마스카', kr:'다른 색 있어요?' },
+    { label:'면세 되나요?', jp:'免税になりますか？', rom:'멘제이니 나리마스카', kr:'면세 되나요?', tip:'여권 지참 필수. 5,000엔 이상 구매 시 면세 가능' },
+    { label:'선물 포장해 주세요', jp:'プレゼント用に包んでください。', rom:'프레젠토요니 츠츤데 쿠다사이', kr:'선물용으로 포장해 주세요.' },
+    { label:'너무 비싸요', jp:'高すぎます。', rom:'타카스기마스', kr:'너무 비싸요.', tip:'백화점은 정찰제, 전통시장에서만 흥정 가능' },
+    { label:'영수증 주세요', jp:'レシートをください。', rom:'레시토오 쿠다사이', kr:'영수증 주세요.' },
+  ],
+};
+
+function renderPhraseCards(phrases) {
+  return phrases.map(p => `<div class="tCard-inner">
+    ${p.label ? `<div style="font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--ink3);margin-bottom:6px;text-transform:uppercase">${p.label}</div>` : ''}
+    <div class="tCard-jp">${p.jp}</div>
+    <div class="tCard-rom">${p.rom}</div>
+    <div class="tCard-kr">${p.kr}</div>
+    ${p.tip ? `<div class="tCard-tip">💡 ${p.tip}</div>` : ''}
+  </div>`).join('');
+}
 
 /* ===== State ===== */
 let savedPlaces = JSON.parse(localStorage.getItem('tokyoPlaces') || '[]');
@@ -1148,7 +1216,15 @@ async function sendChat() {
 }
 document.getElementById('ci').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 document.getElementById('qchips').addEventListener('click', e => {
-  const c = e.target.closest('.chip'); if (c) { document.getElementById('ci').value = c.dataset.q; sendChat(); }
+  const c = e.target.closest('.chip'); if (!c) return;
+  const dbKey = c.dataset.db;
+  if (dbKey && PHRASE_DB[dbKey]) {
+    addMsg('u', c.textContent.trim());
+    addMsg('a', renderPhraseCards(PHRASE_DB[dbKey]));
+  } else if (c.dataset.q) {
+    document.getElementById('ci').value = c.dataset.q;
+    sendChat();
+  }
 });
 
 async function askRoute() {
