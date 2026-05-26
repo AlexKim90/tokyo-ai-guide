@@ -292,6 +292,38 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .dirStepSub{font-size:11px;color:var(--ink3);line-height:1.5;}
 .dirLineBadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-bottom:3px;}
 .dirStepTime{font-size:11px;font-weight:600;color:var(--ink2);flex-shrink:0;margin-top:2px;}
+
+/* ===== TAG FILTER (내 리스트) ===== */
+.tagFilterRow{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--card);border-bottom:0.5px solid var(--bdr);}
+.tagFilterRow::-webkit-scrollbar{display:none;}
+
+/* ===== 일정 짜기 탭 ===== */
+.daySelector{display:flex;align-items:center;gap:7px;padding:10px 14px;background:var(--card);border-bottom:0.5px solid var(--bdr);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.daySelector::-webkit-scrollbar{display:none;}
+.dayTab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:0.5px solid var(--bdr);font-size:12px;font-weight:500;cursor:pointer;color:var(--ink2);background:var(--bg);transition:all .15s;font-family:var(--font);}
+.dayTab.on{background:var(--red);color:#fff;border-color:var(--red);}
+.dayCtrl{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--bdr);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;line-height:1;color:var(--ink2);flex-shrink:0;}
+.dayCtrl:active{background:var(--red-l);}
+.slotBlock{margin:0 14px 10px;}
+.slotLabel{font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.slotCard{background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;gap:10px;}
+.slotEmpty{background:var(--bg);border:1.5px dashed var(--bdr);border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;}
+.slotEmpty:active{background:var(--red-l);border-color:var(--red-m);}
+.slotPlaceName{font-size:13px;font-weight:600;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.slotPlaceTag{font-size:10px;background:var(--red-l);color:var(--red);padding:2px 7px;border-radius:20px;flex-shrink:0;}
+.slotRemoveBtn{width:24px;height:24px;border-radius:50%;background:var(--bg);border:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3);flex-shrink:0;}
+.aiPlanSec{overflow-y:auto;max-height:45vh;flex-shrink:0;padding:12px 14px;background:var(--card);border-bottom:0.5px solid var(--bdr);}
+.aiPlaceChipRow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.aiPlaceChip{font-size:11px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--bdr);cursor:pointer;color:var(--ink3);background:var(--bg);transition:all .15s;font-family:var(--font);}
+.aiPlaceChip.on{background:var(--red-l);border-color:var(--red-m);color:var(--red);}
+.pickerTagRow{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;flex-shrink:0;}
+.pickerTagRow::-webkit-scrollbar{display:none;}
+.pickerList{flex:1;overflow-y:auto;margin-top:8px;border:0.5px solid var(--bdr);border-radius:10px;}
+.pickerItem{display:flex;align-items:center;padding:10px 12px;border-bottom:0.5px solid var(--bdr);cursor:pointer;}
+.pickerItem:last-child{border-bottom:none;}
+.pickerItem:active{background:var(--bg);}
+.pickerItemName{font-size:13px;font-weight:500;color:var(--ink);}
+.pickerItemMeta{font-size:11px;color:var(--ink3);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -308,7 +340,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   <!-- Tab Bar -->
   <div class="tabBar">
     <div class="tab on" data-tab="list"><i class="ti ti-bookmark"></i><span>내 리스트</span></div>
-    <div class="tab" data-tab="explore"><i class="ti ti-search"></i><span>탐색</span></div>
+    <div class="tab" data-tab="schedule"><i class="ti ti-calendar"></i><span>일정</span></div>
     <div class="tab" data-tab="onsite"><i class="ti ti-camera"></i><span>현장</span></div>
     <div class="tab" data-tab="trans"><i class="ti ti-message-circle-2"></i><span>번역·교통</span></div>
   </div>
@@ -322,59 +354,33 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
         <button onclick="openGoogleMapsPopup()"><i class="ti ti-brand-google-maps" style="font-size:14px"></i> 구글 리스트</button>
         <button onclick="openPasteModal()" style="padding:9px 10px;"><i class="ti ti-link" style="font-size:14px"></i></button>
       </div>
+      <div class="tagFilterRow" id="tagFilterRow" style="display:none;"></div>
       <div class="scroll" id="listBody" style="padding-top:10px;"></div>
     </div>
 
-    <!-- ===== TAB 2: 탐색 ===== -->
-    <div class="panel" id="panel-explore">
-      <div class="searchBar">
-        <input class="searchInp" id="exploreInp" placeholder="맛집, 관광지 검색...">
-        <button class="searchBtn" onclick="doExploreSearch()"><i class="ti ti-search" style="color:#fff;font-size:15px"></i></button>
-      </div>
-      <div class="catRow">
-        <div class="chip on" data-cat="">전체</div>
-        <div class="chip" data-cat="라멘">🍜 라멘</div>
-        <div class="chip" data-cat="스시">🍣 스시</div>
-        <div class="chip" data-cat="이자카야">🍺 이자카야</div>
-        <div class="chip" data-cat="카페">☕ 카페</div>
-        <div class="chip" data-cat="돈카츠">🥩 돈카츠</div>
-        <div class="chip" data-cat="관광지">⛩️ 관광지</div>
-        <div class="chip" data-cat="쇼핑">🛍️ 쇼핑</div>
-      </div>
-      <div class="scroll" style="padding-top:10px;">
-        <div id="exploreResults">
-          <div class="emptyState" id="exploreEmpty">
-            <div class="emptyIcon"><i class="ti ti-search"></i></div>
-            <div class="emptyTitle">도쿄 맛집·관광지를 검색해보세요</div>
-            <div class="emptyDesc">카테고리를 선택하거나 직접 검색하세요</div>
-          </div>
+    <!-- ===== TAB 2: 일정 짜기 ===== -->
+    <div class="panel" id="panel-schedule">
+      <!-- AI 자동 일정 -->
+      <button class="planToggleBtn" onclick="toggleAIPlan()" style="margin:8px 14px;width:calc(100% - 28px);flex-shrink:0;">
+        <span style="display:flex;align-items:center;gap:7px"><i class="ti ti-sparkles" style="font-size:15px"></i> ✨ AI 자동 일정 짜기</span>
+        <i class="ti ti-chevron-down" id="aiPlanChevron" style="font-size:14px;transition:transform .2s"></i>
+      </button>
+      <div class="aiPlanSec" id="aiPlanSection" style="display:none;">
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:8px">일정에 넣을 장소를 선택하세요 (미선택 시 전체 사용)</div>
+        <div class="aiPlaceChipRow" id="aiPlaceList"></div>
+        <div style="margin-bottom:10px;">
+          <div class="planLabel" style="margin-bottom:5px;">숙소 위치</div>
+          <input class="planInp" id="aiHotelInp" placeholder="예: 신주쿠, 아사쿠사...">
         </div>
-        <!-- AI 일정 -->
-        <button class="planToggleBtn" onclick="togglePlan()">
-          <span style="display:flex;align-items:center;gap:7px"><i class="ti ti-calendar" style="font-size:15px"></i> ✨ AI 일정 짜기</span>
-          <i class="ti ti-chevron-down" id="planChevron" style="font-size:14px;transition:transform .2s"></i>
+        <button class="btn-red" id="aiGenBtn" style="width:100%;justify-content:center;" onclick="genAIPlan()">
+          <i class="ti ti-sparkles"></i> AI 일정 생성
         </button>
-        <div class="planSection" id="planSection">
-          <div class="planFormRow"><div class="planLabel">여행 기간</div>
-            <select class="planSel" id="planDays"><option value="2">2박 3일</option><option value="3">3박 4일</option><option value="4">4박 5일</option><option value="5">5박 6일</option></select>
-          </div>
-          <div class="planFormRow"><div class="planLabel">관심사</div>
-            <div class="intGrid">
-              <div class="iChip on" data-v="음식·맛집">🍣 음식·맛집</div>
-              <div class="iChip" data-v="쇼핑">🛍️ 쇼핑</div>
-              <div class="iChip" data-v="역사·문화">⛩️ 역사·문화</div>
-              <div class="iChip" data-v="애니·서브컬처">🎌 애니</div>
-              <div class="iChip" data-v="자연·공원">🌸 자연·공원</div>
-              <div class="iChip" data-v="야경">🌃 야경</div>
-            </div>
-          </div>
-          <div class="planFormRow"><div class="planLabel">숙소 위치</div>
-            <input class="planInp" id="planHotel" placeholder="예: 신주쿠, 아사쿠사...">
-          </div>
-          <button class="btn-red" id="genBtn" style="width:100%;justify-content:center;" onclick="genPlan()"><i class="ti ti-sparkles"></i> 일정 생성</button>
-          <div class="planResult" id="planResult" style="display:none;"></div>
-        </div>
+        <div class="planResult" id="aiPlanResult" style="display:none;margin-top:12px;"></div>
       </div>
+      <!-- 날짜 선택 -->
+      <div class="daySelector" id="daySelector"></div>
+      <!-- 일정 슬롯 -->
+      <div class="scroll" id="scheduleBody" style="padding-top:10px;padding-bottom:30px;"></div>
     </div>
 
     <!-- ===== TAB 3: 현장 도우미 ===== -->
@@ -590,6 +596,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   <div class="showScreenRom" id="ssRom"></div>
   <div class="showScreenKr" id="ssKr"></div>
   <div class="showScreenHint">화면을 탭하면 닫힙니다</div>
+</div>
+
+<!-- Modal: 장소 선택 (일정 짜기) -->
+<div class="modal" id="placePicker">
+  <div class="modalBg" onclick="closeModal('placePicker')"></div>
+  <div class="modalSheet" style="max-height:80vh;display:flex;flex-direction:column;padding-bottom:28px;">
+    <div class="modalHandle"></div>
+    <div class="modalTitle" style="flex-shrink:0;">장소 선택</div>
+    <div class="pickerTagRow" id="pickerTagRow"></div>
+    <div class="pickerList" id="pickerList"></div>
+  </div>
 </div>
 
 <!-- Modal: 구글맵 링크 붙여넣기 -->
@@ -967,6 +984,7 @@ let photos = [null, null, null, null]; // base64 per slot
 let currentPhotoSlot = 0;
 let analysisData = null; // parsed analysis result
 let currentExploreCat = '';
+let activeListTag = '';
 
 /* ===== API calls ===== */
 async function callClaude(system, messages) {
@@ -1029,12 +1047,39 @@ function fmtPlain(t) {
 }
 
 /* ===== TAB 1: 내 리스트 ===== */
+function getUniqueTags() {
+  const tags = new Set();
+  savedPlaces.forEach(p => detectTags(p.name, p.category).forEach(t => tags.add(t)));
+  return [...tags];
+}
+
+function renderTagFilter() {
+  const row = document.getElementById('tagFilterRow');
+  const tags = getUniqueTags();
+  if (!tags.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  row.innerHTML = [`<div class="chip ${!activeListTag ? 'on' : ''}" onclick="setListTag('')">전체</div>`]
+    .concat(tags.map(t => `<div class="chip ${activeListTag === t ? 'on' : ''}" onclick="setListTag('${t.replace(/'/g, "\\'")}')">${t}</div>`))
+    .join('');
+}
+
+function setListTag(tag) {
+  activeListTag = tag;
+  renderList();
+}
+
 function renderList() {
+  renderTagFilter();
   const body = document.getElementById('listBody');
+  const filtered = activeListTag
+    ? savedPlaces.filter(p => detectTags(p.name, p.category).includes(activeListTag))
+    : savedPlaces;
   if (savedPlaces.length === 0) {
-    body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div><div class="emptyTitle">저장된 장소가 없어요</div><div class="emptyDesc">탐색 탭에서 맛집을 검색하거나<br>구글맵 링크를 붙여넣어 추가하세요</div></div>`;
+    body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div><div class="emptyTitle">저장된 장소가 없어요</div><div class="emptyDesc">장소 검색이나 구글맵 링크로 추가하세요</div></div>`;
+  } else if (filtered.length === 0) {
+    body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-filter"></i></div><div class="emptyTitle">"${activeListTag}" 장소가 없어요</div><div class="emptyDesc">다른 태그를 선택해보세요</div></div>`;
   } else {
-    const cards = savedPlaces.map((p, i) => buildPlaceCard(p, i)).join('');
+    const cards = filtered.map(p => buildPlaceCard(p, savedPlaces.indexOf(p))).join('');
     body.innerHTML = `<div style="padding-bottom:20px">${cards}</div>`;
   }
 }
@@ -1326,20 +1371,7 @@ function resetPasteModal() {
   document.getElementById('pasteNameResult').innerHTML = '';
 }
 
-/* ===== TAB 2: 탐색 ===== */
-document.querySelector('.catRow').addEventListener('click', e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  document.querySelectorAll('.catRow .chip').forEach(x => x.classList.remove('on'));
-  c.classList.add('on');
-  currentExploreCat = c.dataset.cat;
-  if (currentExploreCat) {
-    document.getElementById('exploreInp').value = currentExploreCat;
-    doExploreSearch();
-  } else {
-    document.getElementById('exploreResults').innerHTML = `<div class="emptyState" id="exploreEmpty"><div class="emptyIcon"><i class="ti ti-search"></i></div><div class="emptyTitle">도쿄 맛집·관광지를 검색해보세요</div><div class="emptyDesc">카테고리를 선택하거나 직접 검색하세요</div></div>`;
-  }
-});
-document.getElementById('exploreInp').addEventListener('keydown', e => { if (e.key === 'Enter') doExploreSearch(); });
+/* ===== (탐색 탭 제거됨 — 일정 짜기로 대체) ===== */
 
 async function doExploreSearch() {
   const q = document.getElementById('exploreInp').value.trim(); if (!q) return;
@@ -1393,9 +1425,7 @@ function togglePlan() {
   chev.style.transform = sec.classList.contains('on') ? 'rotate(180deg)' : '';
 }
 
-document.querySelector('.intGrid').addEventListener('click', e => {
-  const c = e.target.closest('.iChip'); if (c) c.classList.toggle('on');
-});
+// (intGrid 탐색 탭 제거됨)
 
 async function genPlan() {
   const days = document.getElementById('planDays').value;
@@ -2012,10 +2042,179 @@ if ('serviceWorker' in navigator) {
   }, 500);
 })();
 
+/* ===== TAB 2: 일정 짜기 ===== */
+const SLOTS = ['아침', '점심', '저녁', '밤'];
+const SLOT_ICONS = { '아침': '🌅', '점심': '🍽️', '저녁': '🌆', '밤': '🌙' };
+
+let scheduleData = (() => {
+  try { return JSON.parse(localStorage.getItem('tokyoSchedule') || 'null'); } catch { return null; }
+})() || { plan: [
+  { '아침': null, '점심': null, '저녁': null, '밤': null },
+  { '아침': null, '점심': null, '저녁': null, '밤': null },
+  { '아침': null, '점심': null, '저녁': null, '밤': null },
+]};
+
+let activeDay = 0;
+let pickerTarget = null;
+let pickerFilterTag = '';
+
+function saveSchedule() { localStorage.setItem('tokyoSchedule', JSON.stringify(scheduleData)); }
+
+function addDay() {
+  if (scheduleData.plan.length >= 10) return;
+  scheduleData.plan.push({ '아침': null, '점심': null, '저녁': null, '밤': null });
+  activeDay = scheduleData.plan.length - 1;
+  saveSchedule(); renderSchedule();
+}
+
+function removeDay() {
+  if (scheduleData.plan.length <= 1) return;
+  scheduleData.plan.pop();
+  if (activeDay >= scheduleData.plan.length) activeDay = scheduleData.plan.length - 1;
+  saveSchedule(); renderSchedule();
+}
+
+function setActiveDay(d) { activeDay = d; renderDayTabs(); renderScheduleBody(); }
+
+function renderDayTabs() {
+  const tabs = scheduleData.plan.map((_, i) =>
+    `<div class="dayTab ${i === activeDay ? 'on' : ''}" onclick="setActiveDay(${i})">Day ${i + 1}</div>`
+  ).join('');
+  document.getElementById('daySelector').innerHTML =
+    `<div class="dayCtrl" onclick="removeDay()">−</div>${tabs}<div class="dayCtrl" onclick="addDay()">+</div>`;
+}
+
+function renderScheduleBody() {
+  const day = scheduleData.plan[activeDay];
+  document.getElementById('scheduleBody').innerHTML = SLOTS.map(slot => {
+    const place = day[slot];
+    const content = place
+      ? `<div class="slotCard">
+          <div style="font-size:20px">${SLOT_ICONS[slot]}</div>
+          <div style="flex:1;min-width:0">
+            <div class="slotPlaceName">${place.name}</div>
+            ${place.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${place.address}</div>` : ''}
+          </div>
+          ${detectTags(place.name, place.category)[0] ? `<span class="slotPlaceTag">${detectTags(place.name, place.category)[0]}</span>` : ''}
+          <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
+        </div>`
+      : `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
+          <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
+          <span style="font-size:12px;color:var(--ink3)">장소 추가</span>
+        </div>`;
+    return `<div class="slotBlock"><div class="slotLabel">${SLOT_ICONS[slot]} ${slot}</div>${content}</div>`;
+  }).join('');
+}
+
+function renderSchedule() { renderDayTabs(); renderScheduleBody(); }
+
+function removeSlot(btn) {
+  scheduleData.plan[parseInt(btn.dataset.day)][btn.dataset.slot] = null;
+  saveSchedule(); renderScheduleBody();
+}
+
+function openSlotPicker(el) { openPlacePicker(parseInt(el.dataset.day), el.dataset.slot); }
+
+function openPlacePicker(day, slot) {
+  if (!savedPlaces.length) { showToast('먼저 내 리스트에 장소를 추가하세요'); return; }
+  pickerTarget = { day, slot };
+  pickerFilterTag = '';
+  renderPickerModal();
+  document.getElementById('placePicker').classList.add('on');
+}
+
+function renderPickerModal() {
+  const tags = getUniqueTags();
+  const allChip = `<div class="chip ${!pickerFilterTag ? 'on' : ''}" onclick="setPickerTag('')">전체</div>`;
+  const tagChips = tags.map(t =>
+    `<div class="chip ${pickerFilterTag === t ? 'on' : ''}" onclick="setPickerTag('${t.replace(/'/g, "\\'")}')">${t}</div>`
+  ).join('');
+  document.getElementById('pickerTagRow').innerHTML = allChip + tagChips;
+
+  const indexed = pickerFilterTag
+    ? savedPlaces.map((p, i) => ({ p, i })).filter(({ p }) => detectTags(p.name, p.category).includes(pickerFilterTag))
+    : savedPlaces.map((p, i) => ({ p, i }));
+
+  document.getElementById('pickerList').innerHTML = indexed.length
+    ? indexed.map(({ p, i }) => {
+        const tag = detectTags(p.name, p.category)[0] || '';
+        return `<div class="pickerItem" onclick="pickPlace(${i})">
+          <div style="flex:1;min-width:0">
+            <div class="pickerItemName">${p.name}</div>
+            <div class="pickerItemMeta">${[tag, p.address].filter(Boolean).join(' · ')}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="padding:20px;text-align:center;color:var(--ink3);font-size:13px">해당 태그 장소가 없어요</div>`;
+}
+
+function setPickerTag(tag) { pickerFilterTag = tag; renderPickerModal(); }
+
+function pickPlace(idx) {
+  if (!pickerTarget) return;
+  scheduleData.plan[pickerTarget.day][pickerTarget.slot] = savedPlaces[idx];
+  saveSchedule(); renderScheduleBody();
+  closeModal('placePicker');
+}
+
+/* AI 자동 일정 생성 */
+function toggleAIPlan() {
+  const sec = document.getElementById('aiPlanSection');
+  const chev = document.getElementById('aiPlanChevron');
+  const isOn = sec.style.display !== 'none';
+  sec.style.display = isOn ? 'none' : '';
+  chev.style.transform = isOn ? '' : 'rotate(180deg)';
+  if (!isOn) renderAIPlaceList();
+}
+
+function renderAIPlaceList() {
+  const container = document.getElementById('aiPlaceList');
+  if (!savedPlaces.length) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--ink3)">내 리스트에 장소를 먼저 추가하세요</div>';
+    return;
+  }
+  container.innerHTML = savedPlaces.map((p, i) => {
+    const tag = detectTags(p.name, p.category)[0] || '';
+    return `<div class="aiPlaceChip on" data-idx="${i}" onclick="this.classList.toggle('on')">${p.name}${tag ? ` <span style="opacity:.65;font-size:10px">${tag}</span>` : ''}</div>`;
+  }).join('');
+}
+
+async function genAIPlan() {
+  const selectedChips = [...document.querySelectorAll('.aiPlaceChip.on')];
+  const places = selectedChips.length
+    ? selectedChips.map(c => savedPlaces[parseInt(c.dataset.idx)]).filter(Boolean)
+    : savedPlaces;
+
+  if (!places.length) { showToast('내 리스트에 장소를 추가하세요'); return; }
+
+  const days = scheduleData.plan.length;
+  const hotel = document.getElementById('aiHotelInp').value.trim() || '신주쿠';
+  const btn = document.getElementById('aiGenBtn');
+  btn.disabled = true; btn.innerHTML = '<div class="ld"><span></span><span></span><span></span></div>';
+  const res = document.getElementById('aiPlanResult');
+  res.style.display = 'block';
+  res.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:4px 0">✨ 동선 최적화 중...</div>';
+  try {
+    const placeList = places.map(p => {
+      const tag = detectTags(p.name, p.category)[0] || '';
+      return `- ${p.name}${tag ? ' ' + tag : ''}${p.address ? ` (${p.address})` : ''}`;
+    }).join('\n');
+    const reply = await callClaude(SYS_PLAN, [{
+      role: 'user',
+      content: `도쿄 ${days}일 여행 일정. 숙소: ${hotel}.\n아래 장소들을 동선(지역·거리) 기준으로 최적 배치해서 날짜별 아침/점심/저녁/밤으로 구분해줘. 리스트에 없어도 이동 시 들를 만한 장소 추가 추천 가능:\n\n${placeList}`
+    }]);
+    res.innerHTML = fmtPlain(reply);
+  } catch { res.innerHTML = '<div style="color:var(--red);font-size:13px">오류가 발생했어요.</div>'; }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-sparkles"></i> AI 일정 생성';
+}
+
+function initSchedule() { renderDayTabs(); renderScheduleBody(); }
+
 /* ===== Init ===== */
 renderList();
 renderPhotoSlots();
 initRoutePresets();
+initSchedule();
 </script>
 </body>
 </html>
