@@ -44,8 +44,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ name: decodeURIComponent(directMatch[1].replace(/\+/g, ' ')), finalUrl: url });
       }
 
-      // 2) Short URL — follow the redirect (no-follow, manual)
-      const r1 = await fetch(url, { redirect: 'manual', headers: { 'User-Agent': UA_MOBILE } });
+      // 2) Strip app-share tracking params (g_st=i from iOS, etc.) before following redirect
+      //    These params can cause Google to return app-scheme redirects instead of web URLs
+      const cleanUrl = url.replace(/([?&])g_st=[^&]*(&|$)/g, (_, p, s) => s === '&' ? p : '').replace(/[?&]$/, '');
+
+      // 3) Short URL — follow the redirect (no-follow, manual)
+      const r1 = await fetch(cleanUrl, { redirect: 'manual', headers: { 'User-Agent': UA_MOBILE } });
       const location = r1.headers.get('location') || '';
 
       // 3) Check if redirect goes to a list (@/data= pattern) or a place
