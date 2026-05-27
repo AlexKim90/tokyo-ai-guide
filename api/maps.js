@@ -47,21 +47,27 @@ export default async function handler(req, res) {
       // 2) Strip iOS/Android share tracking params (g_st=i, etc.) that alter redirect behavior
       const cleanUrl = url.replace(/([?&])g_st=[^&]*/g, '').replace(/\?&/, '?').replace(/[?&]$/, '');
 
-      // 3) Follow ALL redirects automatically (desktop UA — needed for entitylist preload to appear in HTML)
+      // 3) Follow ALL redirects with MOBILE UA — maps.app.goo.gl is mobile-targeted,
+      //    desktop UA gives a different redirect destination
       //    redirect:'follow' handles multi-hop chains: maps.app.goo.gl → goo.gl → google.com/maps
       const r1 = await fetch(cleanUrl, {
         redirect: 'follow',
+        headers: { 'User-Agent': UA_MOBILE }
+      });
+      const finalUrl = r1.url;
+
+      // 4) Re-fetch final Maps URL with DESKTOP UA to get entitylist preload in HTML
+      //    (preload link only appears in the desktop HTML response)
+      const r2 = await fetch(finalUrl, {
         headers: {
           'User-Agent': UA_DESKTOP,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8'
         }
       });
-      const finalUrl = r1.url;
-      const html = await r1.text();
+      const html = await r2.text();
 
-      // 4) Detect list vs single place by looking for entitylist preload in HTML
-      //    (more reliable than URL pattern matching which breaks when Google changes URL formats)
+      // 5) Detect list vs single place by looking for entitylist preload in HTML
       const preloadMatch = html.match(/href="(\/maps\/preview\/entitylist\/getlist[^"]+)"/);
 
       if (!preloadMatch) {
@@ -72,10 +78,10 @@ export default async function handler(req, res) {
       }
 
       // ---- IT'S A SAVED LIST ----
-      // 5) Fetch the list JSON using preload URL found in HTML
+      // 6) Fetch the list JSON using preload URL found in HTML
       const listUrl = `https://www.google.com${preloadMatch[1].replace(/&amp;/g, '&')}`;
-      const r2 = await fetch(listUrl, { headers: { 'User-Agent': UA_DESKTOP } });
-      const raw = await r2.text();
+      const r3 = await fetch(listUrl, { headers: { 'User-Agent': UA_DESKTOP } });
+      const raw = await r3.text();
       const text = raw.startsWith(")]}'") ? raw.slice(5) : raw;
 
       // 6) Extract list name
