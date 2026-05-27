@@ -1174,8 +1174,8 @@ function buildPlaceCard(p, i) {
     // place_id → 가장 정확
     gmUrl = `https://www.google.com/maps/place/?q=place_id:${p.placeId}`;
   } else if (p.lat && p.lng) {
-    // 좌표 → 핀 드롭 (항상 정확한 위치, "검색 결과 없음" 없음)
-    gmUrl = `https://maps.google.com/maps?q=${p.lat},${p.lng}`;
+    // 좌표 + 이름 검색 → 업체명 표시 + 정확한 위치
+    gmUrl = `https://www.google.com/maps/search/${encodeURIComponent(p.name)}/@${p.lat},${p.lng},17z`;
   } else {
     // 폴백: 이름+주소 텍스트 검색
     const q = encodeURIComponent([p.name, p.address].filter(Boolean).join(' '));
