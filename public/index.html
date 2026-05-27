@@ -312,6 +312,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 /* ===== TAG FILTER (내 리스트) ===== */
 .tagFilterRow{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--card);border-bottom:0.5px solid var(--bdr);}
 .tagFilterRow::-webkit-scrollbar{display:none;}
+.areaFilterRow{display:flex;gap:6px;padding:6px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--bg);border-bottom:0.5px solid var(--bdr);}
+.areaFilterRow::-webkit-scrollbar{display:none;}
+.areaTag{font-size:10px;background:#EBF3FF;border:0.5px solid #C2D9F5;border-radius:20px;padding:2px 8px;color:#185FA5;}
 
 /* ===== 일정 짜기 탭 ===== */
 .daySelector{display:flex;align-items:center;gap:7px;padding:10px 14px;background:var(--card);border-bottom:0.5px solid var(--bdr);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
@@ -378,6 +381,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
         <button onclick="clearAllPlaces()" id="clearAllBtn" style="color:var(--red);border-color:var(--red);"><i class="ti ti-trash" style="font-size:14px"></i> 전체삭제</button>
       </div>
       <div class="tagFilterRow" id="tagFilterRow" style="display:none;"></div>
+      <div class="areaFilterRow" id="areaFilterRow" style="display:none;"></div>
       <div class="scroll" id="listBody" style="padding-top:10px;"></div>
     </div>
 
@@ -1023,6 +1027,7 @@ let currentPhotoSlot = 0;
 let analysisData = null; // parsed analysis result
 let currentExploreCat = '';
 let activeListTag = '';
+let activeAreaTag = '';
 
 /* ===== API calls ===== */
 async function callClaude(system, messages) {
@@ -1091,6 +1096,12 @@ function getUniqueTags() {
   return [...tags];
 }
 
+function getUniqueAreas() {
+  const areas = new Set();
+  savedPlaces.forEach(p => { const a = getAreaTag(p); if (a) areas.add(a); });
+  return [...areas];
+}
+
 function renderTagFilter() {
   const row = document.getElementById('tagFilterRow');
   const tags = getUniqueTags();
@@ -1101,23 +1112,40 @@ function renderTagFilter() {
     .join('');
 }
 
+function renderAreaFilter() {
+  const row = document.getElementById('areaFilterRow');
+  const areas = getUniqueAreas();
+  if (!areas.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  row.innerHTML = [`<div class="chip ${!activeAreaTag ? 'on' : ''}" onclick="setAreaTag('')">전체지역</div>`]
+    .concat(areas.map(a => `<div class="chip ${activeAreaTag === a ? 'on' : ''}" onclick="setAreaTag('${a.replace(/'/g, "\\'")}')">${a}</div>`))
+    .join('');
+}
+
 function setListTag(tag) {
   activeListTag = tag;
   renderList();
 }
 
+function setAreaTag(area) {
+  activeAreaTag = area;
+  renderList();
+}
+
 function renderList() {
   renderTagFilter();
+  renderAreaFilter();
   const clearBtn = document.getElementById('clearAllBtn');
   if (clearBtn) clearBtn.style.display = savedPlaces.length ? '' : 'none';
   const body = document.getElementById('listBody');
-  const filtered = activeListTag
-    ? savedPlaces.filter(p => getTags(p).includes(activeListTag))
-    : savedPlaces;
+  let filtered = savedPlaces;
+  if (activeListTag) filtered = filtered.filter(p => getTags(p).includes(activeListTag));
+  if (activeAreaTag) filtered = filtered.filter(p => getAreaTag(p) === activeAreaTag);
   if (savedPlaces.length === 0) {
     body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div><div class="emptyTitle">저장된 장소가 없어요</div><div class="emptyDesc">장소 검색이나 구글맵 링크로 추가하세요</div></div>`;
   } else if (filtered.length === 0) {
-    body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-filter"></i></div><div class="emptyTitle">"${activeListTag}" 장소가 없어요</div><div class="emptyDesc">다른 태그를 선택해보세요</div></div>`;
+    const label = [activeListTag, activeAreaTag].filter(Boolean).join(' + ');
+    body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-filter"></i></div><div class="emptyTitle">"${label}" 장소가 없어요</div><div class="emptyDesc">다른 태그를 선택해보세요</div></div>`;
   } else {
     const cards = filtered.map(p => buildPlaceCard(p, savedPlaces.indexOf(p))).join('');
     body.innerHTML = `<div style="padding-bottom:20px">${cards}</div>`;
@@ -1187,6 +1215,46 @@ function detectTags(name, category, types) {
   return tags.slice(0, 3);
 }
 
+function detectArea(name, address) {
+  // Combine name + address for matching (covers both Japanese and English formats)
+  const a = (name || '') + ' ' + (address || '');
+  // Specific landmarks / neighbourhoods first (before generic ward)
+  if (/浅草|Asakusa|아사쿠사/i.test(a)) return '#아사쿠사';
+  if (/六本木|Roppongi|롯폰기/i.test(a)) return '#롯폰기';
+  if (/表参道|Omotesando|오모테산도/i.test(a)) return '#오모테산도';
+  if (/原宿|Harajuku|하라주쿠/i.test(a)) return '#하라주쿠';
+  if (/恵比寿|Ebisu|에비스/i.test(a)) return '#에비스';
+  if (/中目黒|Nakameguro|나카메구로/i.test(a)) return '#나카메구로';
+  if (/秋葉原|Akihabara|아키하바라/i.test(a)) return '#아키하바라';
+  if (/吉祥寺|Kichijoji|기치조지/i.test(a)) return '#기치조지';
+  if (/下北沢|Shimokitazawa|시모키타자와/i.test(a)) return '#시모키타자와';
+  if (/銀座|Ginza|긴자/i.test(a)) return '#긴자';
+  if (/丸の内|Marunouchi|마루노우치/i.test(a)) return '#마루노우치';
+  if (/日本橋|Nihonbashi|니혼바시/i.test(a)) return '#니혼바시';
+  if (/新橋|Shimbashi|Shinbashi|신바시/i.test(a)) return '#신바시';
+  if (/神田|Kanda|칸다/i.test(a)) return '#칸다';
+  if (/青山|Aoyama|아오야마/i.test(a)) return '#아오야마';
+  if (/赤坂|Akasaka|아카사카/i.test(a)) return '#아카사카';
+  if (/台場|Odaiba|오다이바/i.test(a)) return '#오다이바';
+  if (/蒲田|Kamata|카마타/i.test(a)) return '#카마타';
+  // Major areas (ward level)
+  if (/新宿|Shinjuku|신주쿠/i.test(a)) return '#신주쿠';
+  if (/渋谷|Shibuya|시부야/i.test(a)) return '#시부야';
+  if (/池袋|Ikebukuro|이케부쿠로/i.test(a)) return '#이케부쿠로';
+  if (/上野|Ueno|우에노/i.test(a)) return '#우에노';
+  if (/品川|Shinagawa|시나가와/i.test(a)) return '#시나가와';
+  // Greater Tokyo / day trips
+  if (/横浜|Yokohama|요코하마/i.test(a)) return '#요코하마';
+  if (/鎌倉|Kamakura|가마쿠라/i.test(a)) return '#가마쿠라';
+  if (/箱根|Hakone|하코네/i.test(a)) return '#하코네';
+  if (/日光|Nikko|닛코/i.test(a)) return '#닛코';
+  return null;
+}
+
+function getAreaTag(p) {
+  return p.areaTag || detectArea(p.name, p.address);
+}
+
 function buildPlaceCard(p, i) {
   let gmUrl;
   if (p.placeId) {
@@ -1202,7 +1270,10 @@ function buildPlaceCard(p, i) {
   }
   const rat = p.rating ? `⭐ ${p.rating}` : '';
   const tags = getTags(p);
-  const tagsHtml = tags.length ? `<div class="placeTags">${tags.map(t => `<span class="placeTag">${t}</span>`).join('')}</div>` : '';
+  const areaTag = getAreaTag(p);
+  const allTagsHtml = (tags.length || areaTag)
+    ? `<div class="placeTags">${tags.map(t => `<span class="placeTag">${t}</span>`).join('')}${areaTag ? `<span class="areaTag">${areaTag}</span>` : ''}</div>`
+    : '';
   return `<div class="placeCard">
     <div class="placeCardTop">
       <div class="placeRow">
@@ -1210,7 +1281,7 @@ function buildPlaceCard(p, i) {
         <div class="placeCat">${p.category || '장소'}</div>
       </div>
       ${p.address ? `<div class="placeAddr"><i class="ti ti-map-pin" style="font-size:10px"></i>${p.address}</div>` : ''}
-      ${tagsHtml}
+      ${allTagsHtml}
       ${rat ? `<div class="placeRating">${rat}${p.ratingCount ? ` (${p.ratingCount.toLocaleString()}개 리뷰)` : ''}</div>` : ''}
     </div>
     <div class="placeActions">
@@ -2145,6 +2216,7 @@ async function showPlaceDetail(ridx) {
 
 function renderPlaceDetailContent(place, detail, photoUrl) {
   const tags = getTags(place);
+  const areaTag = getAreaTag(place);
   const rating = detail?.rating || place.rating;
   const ratingCount = detail?.user_ratings_total || place.ratingCount;
   const address = detail?.formatted_address || place.address || '';
@@ -2183,7 +2255,7 @@ function renderPlaceDetailContent(place, detail, photoUrl) {
     <div style="padding-top:4px">
       ${photoUrl ? `<div style="margin:-4px -16px 14px;height:200px;overflow:hidden;border-radius:12px"><img src="${photoUrl}" alt="${place.name}" style="width:100%;height:100%;object-fit:cover"></div>` : ''}
       <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px">${place.name}</div>
-      ${tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${tags.map(t=>`<span class="placeTag">${t}</span>`).join('')}</div>` : ''}
+      ${(tags.length || areaTag) ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${tags.map(t=>`<span class="placeTag">${t}</span>`).join('')}${areaTag ? `<span class="areaTag">${areaTag}</span>` : ''}</div>` : ''}
       ${rating ? `<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">⭐ ${rating}${ratingCount ? ` <span style="color:var(--ink3)">(${ratingCount.toLocaleString()}개 리뷰)</span>` : ''}</div>` : ''}
 
       <div style="display:flex;flex-direction:column;gap:0;border:0.5px solid var(--bdr);border-radius:12px;padding:2px 12px;margin-bottom:16px;background:var(--card);">
