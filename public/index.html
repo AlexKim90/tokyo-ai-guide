@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <style>
 :root{--red:#D94035;--red-l:#FDECEA;--red-m:#F2A09A;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--bg:#F5F5F5;--card:#FFFFFF;--bdr:rgba(0,0,0,0.08);--r:14px;--font:'DM Sans',sans-serif;--jp:'Noto Sans JP',sans-serif;}
 @media(prefers-color-scheme:dark){:root{--ink:#F0EDE8;--ink2:#AAA;--ink3:#666;--bg:#121212;--card:#1E1E1E;--bdr:rgba(255,255,255,0.09);--red-l:#2A1210;}}
@@ -319,6 +320,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .slotPlaceName{font-size:13px;font-weight:600;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .slotPlaceTag{font-size:10px;background:var(--red-l);color:var(--red);padding:2px 7px;border-radius:20px;flex-shrink:0;}
 .slotRemoveBtn{width:24px;height:24px;border-radius:50%;background:var(--bg);border:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3);flex-shrink:0;}
+.dragHandle{color:var(--ink3);cursor:grab;padding:2px 4px;touch-action:none;flex-shrink:0;display:flex;align-items:center;}
+.dragHandle:active{cursor:grabbing;}
+.sortable-ghost{opacity:.4;background:var(--red-l);}
+.sortable-drag{opacity:.95;box-shadow:0 4px 16px rgba(0,0,0,.15);}
 .aiPlanSec{overflow-y:auto;max-height:45vh;flex-shrink:0;padding:12px 14px;background:var(--card);border-bottom:0.5px solid var(--bdr);}
 .aiPlaceChipRow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .aiPlaceChip{font-size:11px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--bdr);cursor:pointer;color:var(--ink3);background:var(--bg);transition:all .15s;font-family:var(--font);}
@@ -2210,6 +2215,7 @@ function renderScheduleBody() {
     const cards = places.map((place, pi) => {
       const dist = distLabel(hotel, place);
       return `<div class="slotCard">
+        ${!scheduleConfirmed ? `<div class="dragHandle"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
         <div style="flex:1;min-width:0">
           <div class="slotPlaceName">${place.name}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
@@ -2225,11 +2231,36 @@ function renderScheduleBody() {
           <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
           <span style="font-size:12px;color:var(--ink3)">장소 추가</span>
         </div>` : '';
-    if (scheduleConfirmed && !places.length) return ''; // 확정 모드에서 빈 슬롯 숨김
-    return `<div class="slotBlock"><div class="slotLabel">${SLOT_ICONS[slot]} ${slot}</div><div class="slotCards">${cards}${addBtn}</div></div>`;
+    if (scheduleConfirmed && !places.length) return '';
+    return `<div class="slotBlock"><div class="slotLabel">${SLOT_ICONS[slot]} ${slot}</div><div class="slotCards" data-sortable-slot="${slot}" data-sortable-day="${activeDay}">${cards}${addBtn}</div></div>`;
   }).join('');
 
   document.getElementById('scheduleBody').innerHTML = html;
+  initSortable();
+}
+
+function initSortable() {
+  if (scheduleConfirmed || typeof Sortable === 'undefined') return;
+  document.querySelectorAll('[data-sortable-slot]').forEach(container => {
+    const slot = container.dataset.sortableSlot;
+    const day = parseInt(container.dataset.sortableDay);
+    Sortable.create(container, {
+      animation: 150,
+      handle: '.dragHandle',
+      draggable: '.slotCard',
+      ghostClass: 'sortable-ghost',
+      dragClass: 'sortable-drag',
+      onEnd(evt) {
+        if (evt.oldIndex === evt.newIndex) return;
+        const arr = scheduleData.plan[day][slot];
+        const [moved] = arr.splice(evt.oldIndex, 1);
+        arr.splice(evt.newIndex, 0, moved);
+        saveSchedule();
+        // 삭제 버튼의 data-index 갱신
+        container.querySelectorAll('.slotRemoveBtn').forEach((btn, i) => btn.dataset.index = i);
+      }
+    });
+  });
 }
 
 function renderSchedule() {
