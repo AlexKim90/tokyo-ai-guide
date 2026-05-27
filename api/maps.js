@@ -27,13 +27,44 @@ export default async function handler(req, res) {
   const key = process.env.GOOGLE_MAPS_KEY;
   try {
     if (type === 'search') {
-      const r = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&language=ko&key=${key}`);
-      return res.status(200).json(await r.json());
+      const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': key,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.types,places.rating,places.userRatingCount'
+        },
+        body: JSON.stringify({ textQuery: query, languageCode: 'ko' })
+      });
+      const data = await r.json();
+      const results = (data.places || []).map(p => ({
+        place_id: p.id,
+        name: p.displayName?.text || '',
+        formatted_address: p.formattedAddress || '',
+        types: p.types || [],
+        rating: p.rating,
+        user_ratings_total: p.userRatingCount
+      }));
+      return res.status(200).json({ results });
 
     } else if (type === 'details') {
-      const fields = 'name,formatted_address,formatted_phone_number,opening_hours,rating,user_ratings_total,website,url,place_id';
-      const r = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${place_id}&fields=${fields}&language=ko&key=${key}`);
-      return res.status(200).json(await r.json());
+      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types';
+      const r = await fetch(`https://places.googleapis.com/v1/places/${place_id}`, {
+        headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': fields, 'Accept-Language': 'ko' }
+      });
+      const p = await r.json();
+      return res.status(200).json({ result: {
+        name: p.displayName?.text || '',
+        formatted_address: p.formattedAddress || '',
+        formatted_phone_number: p.nationalPhoneNumber || '',
+        opening_hours: p.regularOpeningHours ? { weekday_text: p.regularOpeningHours.weekdayDescriptions || [] } : null,
+        rating: p.rating,
+        user_ratings_total: p.userRatingCount,
+        website: p.websiteUri,
+        url: p.googleMapsUri,
+        place_id: p.id,
+        types: p.types || []
+      }});
 
     } else if (type === 'expand') {
       if (!url) return res.status(400).json({ error: 'Missing url' });
