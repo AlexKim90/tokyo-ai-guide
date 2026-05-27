@@ -1125,31 +1125,31 @@ function detectTags(name, category, types) {
   const typeStr = (Array.isArray(types) ? types : []).join(' ');
   const s = ((name || '') + ' ' + (category || '') + ' ' + typeStr).toLowerCase();
   const tags = [];
-  // 음식 종류 — 한자·히라가나·카타카나 + Google Places types 폭넓게 커버
+  // 음식 종류 — 한자·히라가나·카타카나 + Google Places API types 전체 커버
   if (/라멘|ramen|ラーメン|らーめん|拉麺|ラ麺|ramen_restaurant/.test(s)) tags.push('#라멘');
   if (/스시|sushi|すし|スシ|寿司|鮨|鮓|초밥|sushi_restaurant/.test(s)) tags.push('#스시');
-  if (/이자카야|izakaya|居酒屋|いざかや/.test(s)) tags.push('#이자카야');
+  if (/이자카야|izakaya|居酒屋|いざかや|izakaya_restaurant/.test(s)) tags.push('#이자카야');
   if (/카페|cafe|coffee|珈琲|コーヒー|カフェ|スタバ|starbucks|tully|ドトール|ルノアール|coffee_shop/.test(s)) tags.push('#카페');
-  if (/돈카츠|tonkatsu|とんかつ|トンカツ|カツ|かつ|勝/.test(s) && !/チキンカツ/.test(s)) tags.push('#돈카츠');
-  if (/야키니쿠|焼肉|焼き肉|yakiniku|牛肉|ホルモン|barbecue_restaurant/.test(s)) tags.push('#야키니쿠');
-  if (/우동|udon|うどん|ウドン|饂飩/.test(s)) tags.push('#우동');
-  if (/소바|soba|そば|ソバ|蕎麦/.test(s)) tags.push('#소바');
-  if (/야키토리|yakitori|焼き鳥|焼鳥|やきとり/.test(s)) tags.push('#야키토리');
-  if (/텐푸라|tempura|天ぷら|天麩羅|てんぷら/.test(s)) tags.push('#텐푸라');
+  if (/돈카츠|tonkatsu|とんかつ|トンカツ|tonkatsu_restaurant/.test(s)) tags.push('#돈카츠');
+  if (/야키니쿠|焼肉|焼き肉|yakiniku|牛肉|ホルモン|yakiniku_restaurant|barbecue_restaurant/.test(s)) tags.push('#야키니쿠');
+  if (/우동|udon|うどん|ウドン|饂飩|udon_noodle_restaurant/.test(s)) tags.push('#우동');
+  if (/소바|soba|そば|ソバ|蕎麦|soba_noodle_restaurant/.test(s)) tags.push('#소바');
+  if (/야키토리|yakitori|焼き鳥|焼鳥|やきとり|yakitori_restaurant/.test(s)) tags.push('#야키토리');
+  if (/텐푸라|tempura|天ぷら|天麩羅|てんぷら|tempura_restaurant/.test(s)) tags.push('#텐푸라');
   if (/스테이크|steak|ステーキ|steak_house/.test(s)) tags.push('#스테이크');
-  if (/스키야키|샤부|しゃぶ|すき焼|鍋|なべ|nabe|hot_pot_restaurant/.test(s)) tags.push('#나베');
-  if (/seafood|海鮮|かいせん|魚|さかな|해산물|seafood_restaurant/.test(s)) tags.push('#해산물');
-  if (/バー|ば[ー]|居酒|酒場|bar|비어/.test(s) && !tags.length) tags.push('#바');
+  if (/스키야키|샤부|しゃぶ|すき焼|鍋|なべ|nabe|hot_pot_restaurant|shabu_restaurant/.test(s)) tags.push('#나베');
+  if (/seafood|海鮮|かいせん|魚介|さかな|해산물|seafood_restaurant/.test(s)) tags.push('#해산물');
+  if (/バー|ば[ー]|居酒|酒場|bar|비어|wine_bar|cocktail_bar/.test(s) && !tags.length) tags.push('#바');
   // 숙박·관광·기타
-  if (/golf|ゴルフ|골프/.test(s)) tags.push('#골프');
-  if (/호텔|hotel|ホテル|旅館|ryokan|료칸/.test(s)) tags.push('#호텔·숙소');
-  if (/온천|温泉/.test(s)) tags.push('#온천');
-  if (/shrine|神社|신사|temple|寺院|寺|사원/.test(s)) tags.push('#신사·사원');
-  if (/공원|park|公園/.test(s)) tags.push('#공원');
-  if (/shopping|쇼핑|百貨|department|デパート|モール|ドン・キ/.test(s)) tags.push('#쇼핑');
-  // 일식 폴백 (일식 전체지만 세부 태그 없을 때)
+  if (/golf|ゴルフ|골프|golf_course/.test(s)) tags.push('#골프');
+  if (/호텔|hotel|ホテル|旅館|ryokan|료칸|lodging/.test(s)) tags.push('#호텔·숙소');
+  if (/온천|温泉|spa/.test(s)) tags.push('#온천');
+  if (/shrine|神社|신사|temple|寺院|寺|사원|shinto_shrine|buddhist_temple/.test(s)) tags.push('#신사·사원');
+  if (/공원|park|公園/.test(s) && !/parking/.test(s)) tags.push('#공원');
+  if (/shopping|쇼핑|百貨|department|デパート|モール|ドン・キ|shopping_mall|department_store/.test(s)) tags.push('#쇼핑');
+  // 일식 폴백
   if (!tags.length && /japanese_restaurant|和食|わしょく|일식/.test(s)) tags.push('#일식');
-  // 식당 폴백 (아무 태그도 없을 때)
+  // 식당 폴백
   if (!tags.length && /restaurant|food|meal|食堂|食事|定食|料理/.test(s)) tags.push('#식당');
   return tags.slice(0, 3);
 }
@@ -1377,7 +1377,6 @@ async function enrichPlaceIds(names) {
   }
   localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
   renderList();
-  await claudeTagPlaces(names);
 }
 
 async function addByName() {
