@@ -1054,7 +1054,7 @@ function fmtPlain(t) {
 /* ===== TAB 1: 내 리스트 ===== */
 function getUniqueTags() {
   const tags = new Set();
-  savedPlaces.forEach(p => detectTags(p.name, p.category, p.placeTypes).forEach(t => tags.add(t)));
+  savedPlaces.forEach(p => getTags(p).forEach(t => tags.add(t)));
   return [...tags];
 }
 
@@ -1079,7 +1079,7 @@ function renderList() {
   if (clearBtn) clearBtn.style.display = savedPlaces.length ? '' : 'none';
   const body = document.getElementById('listBody');
   const filtered = activeListTag
-    ? savedPlaces.filter(p => detectTags(p.name, p.category, p.placeTypes).includes(activeListTag))
+    ? savedPlaces.filter(p => getTags(p).includes(activeListTag))
     : savedPlaces;
   if (savedPlaces.length === 0) {
     body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div><div class="emptyTitle">저장된 장소가 없어요</div><div class="emptyDesc">장소 검색이나 구글맵 링크로 추가하세요</div></div>`;
@@ -1089,6 +1089,36 @@ function renderList() {
     const cards = filtered.map(p => buildPlaceCard(p, savedPlaces.indexOf(p))).join('');
     body.innerHTML = `<div style="padding-bottom:20px">${cards}</div>`;
   }
+}
+
+const ALL_TAGS = ['#라멘','#스시','#이자카야','#카페','#돈카츠','#야키니쿠','#우동','#소바','#야키토리','#텐푸라','#스테이크','#나베','#해산물','#바','#골프','#호텔·숙소','#온천','#신사·사원','#공원','#쇼핑','#일식','#식당'];
+
+function getTags(p) {
+  if (p.tag) return [p.tag];
+  return getTags(p);
+}
+
+async function claudeTagPlaces(names) {
+  const toTag = names.filter(name => {
+    const p = savedPlaces.find(s => s.name === name);
+    return p && !p.tag;
+  });
+  if (!toTag.length) return;
+  try {
+    const text = await callClaude(
+      `도쿄 장소 이름을 보고 카테고리 태그를 달아주세요. 태그는 반드시 다음 중 하나: ${ALL_TAGS.join(', ')}. JSON 배열로만 응답하세요: [{"name":"장소명","tag":"#태그"}]`,
+      [{ role: 'user', content: `다음 장소들에 태그를 달아주세요:\n${toTag.join('\n')}` }]
+    );
+    const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    if (!jsonMatch) return;
+    const results = JSON.parse(jsonMatch[0]);
+    for (const { name, tag } of results) {
+      const idx = savedPlaces.findIndex(p => p.name === name);
+      if (idx !== -1 && ALL_TAGS.includes(tag)) savedPlaces[idx].tag = tag;
+    }
+    localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+    renderList();
+  } catch {}
 }
 
 function detectTags(name, category, types) {
@@ -1138,7 +1168,7 @@ function buildPlaceCard(p, i) {
     gmUrl = `https://www.google.com/maps/search/?api=1&query=${q}`;
   }
   const rat = p.rating ? `⭐ ${p.rating}` : '';
-  const tags = detectTags(p.name, p.category, p.placeTypes);
+  const tags = getTags(p);
   const tagsHtml = tags.length ? `<div class="placeTags">${tags.map(t => `<span class="placeTag">${t}</span>`).join('')}</div>` : '';
   return `<div class="placeCard">
     <div class="placeCardTop">
@@ -1347,6 +1377,7 @@ async function enrichPlaceIds(names) {
   }
   localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
   renderList();
+  await claudeTagPlaces(names);
 }
 
 async function addByName() {
@@ -2098,7 +2129,7 @@ function renderScheduleBody() {
             <div class="slotPlaceName">${place.name}</div>
             ${place.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${place.address}</div>` : ''}
           </div>
-          ${detectTags(place.name, place.category, place.placeTypes)[0] ? `<span class="slotPlaceTag">${detectTags(place.name, place.category, place.placeTypes)[0]}</span>` : ''}
+          ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
           <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
         </div>`
       : `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
@@ -2135,12 +2166,12 @@ function renderPickerModal() {
   document.getElementById('pickerTagRow').innerHTML = allChip + tagChips;
 
   const indexed = pickerFilterTag
-    ? savedPlaces.map((p, i) => ({ p, i })).filter(({ p }) => detectTags(p.name, p.category, p.placeTypes).includes(pickerFilterTag))
+    ? savedPlaces.map((p, i) => ({ p, i })).filter(({ p }) => getTags(p).includes(pickerFilterTag))
     : savedPlaces.map((p, i) => ({ p, i }));
 
   document.getElementById('pickerList').innerHTML = indexed.length
     ? indexed.map(({ p, i }) => {
-        const tag = detectTags(p.name, p.category, p.placeTypes)[0] || '';
+        const tag = getTags(p)[0] || '';
         return `<div class="pickerItem" onclick="pickPlace(${i})">
           <div style="flex:1;min-width:0">
             <div class="pickerItemName">${p.name}</div>
@@ -2177,7 +2208,7 @@ function renderAIPlaceList() {
     return;
   }
   container.innerHTML = savedPlaces.map((p, i) => {
-    const tag = detectTags(p.name, p.category, p.placeTypes)[0] || '';
+    const tag = getTags(p)[0] || '';
     return `<div class="aiPlaceChip on" data-idx="${i}" onclick="this.classList.toggle('on')">${p.name}${tag ? ` <span style="opacity:.65;font-size:10px">${tag}</span>` : ''}</div>`;
   }).join('');
 }
@@ -2199,7 +2230,7 @@ async function genAIPlan() {
   res.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:4px 0">✨ 동선 최적화 중...</div>';
   try {
     const placeList = places.map(p => {
-      const tag = detectTags(p.name, p.category, p.placeTypes)[0] || '';
+      const tag = getTags(p)[0] || '';
       return `- ${p.name}${tag ? ' ' + tag : ''}${p.address ? ` (${p.address})` : ''}`;
     }).join('\n');
     const reply = await callClaude(SYS_PLAN, [{
