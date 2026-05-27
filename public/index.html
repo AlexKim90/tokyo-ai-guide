@@ -142,6 +142,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .confirmBtn:active{opacity:.85;}
 .editBtn{padding:10px 16px;border-radius:10px;border:0.5px solid var(--bdr);background:var(--bg);color:var(--ink2);font-family:var(--font);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
 .confirmedBadge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1a9e5c;}
+.navBtn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;background:#1a73e8;color:#fff;font-size:12px;font-weight:600;text-decoration:none;}
 .planSection{background:var(--card);border-radius:var(--r);margin:0 14px 10px;border:0.5px solid var(--bdr);padding:14px;display:none;}
 .planSection.on{display:block;}
 .planFormRow{margin-bottom:10px;}
@@ -2100,6 +2101,13 @@ if ('serviceWorker' in navigator) {
 const SLOTS = ['아침', '점심', '저녁', '밤'];
 const SLOT_ICONS = { '아침': '🌅', '점심': '🍽️', '저녁': '🌆', '밤': '🌙' };
 
+function navUrl(place) {
+  const base = 'https://www.google.com/maps/dir/?api=1&travelmode=transit';
+  if (place.placeId) return `${base}&destination=${encodeURIComponent(place.name)}&destination_place_id=${place.placeId}`;
+  if (place.lat && place.lng) return `${base}&destination=${place.lat},${place.lng}`;
+  return `${base}&destination=${encodeURIComponent([place.name, place.address].filter(Boolean).join(' '))}`;
+}
+
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371, toRad = d => d * Math.PI / 180;
   const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
@@ -2215,16 +2223,19 @@ function renderScheduleBody() {
     const places = Array.isArray(day[slot]) ? day[slot] : [];
     const cards = places.map((place, pi) => {
       const dist = distLabel(hotel, place);
-      return `<div class="slotCard">
-        ${!scheduleConfirmed ? `<div class="dragHandle"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
-        <div style="flex:1;min-width:0">
-          <div class="slotPlaceName">${place.name}</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
-            ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
-            ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
+      return `<div class="slotCard" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${!scheduleConfirmed ? `<div class="dragHandle"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
+          <div style="flex:1;min-width:0">
+            <div class="slotPlaceName">${place.name}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+              ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
+              ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
+            </div>
           </div>
+          ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : ''}
         </div>
-        ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : ''}
+        ${scheduleConfirmed ? `<a href="${navUrl(place)}" target="_blank" class="navBtn"><i class="ti ti-navigation" style="font-size:13px"></i> 구글맵으로 안내받기</a>` : ''}
       </div>`;
     }).join('');
     const addBtn = !scheduleConfirmed
