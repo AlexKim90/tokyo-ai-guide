@@ -1354,7 +1354,8 @@ function importSelected() {
     if (!savedPlaces.find(s => s.name === p.name)) {
       // 즉시 저장: 이름+주소 검색 URL (안정적 폴백)
       const searchQ = encodeURIComponent([p.name, p.address].filter(Boolean).join(' '));
-      savedPlaces.push({ ...p, category: '장소', rating: null, mapsUrl: `https://www.google.com/maps/search/?api=1&query=${searchQ}` });
+      // p.mapsUrl은 이미 좌표 기반 URL — 덮어쓰지 않음. 없을 때만 검색 URL 폴백
+      savedPlaces.push({ ...p, category: '장소', rating: null, mapsUrl: p.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${searchQ}` });
       toEnrich.push(p.name);
     }
   }
