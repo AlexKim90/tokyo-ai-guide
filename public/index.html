@@ -1171,13 +1171,13 @@ function detectTags(name, category, types) {
 function buildPlaceCard(p, i) {
   let gmUrl;
   if (p.placeId) {
-    // place_id가 있으면 가장 정확
+    // place_id → 가장 정확
     gmUrl = `https://www.google.com/maps/place/?q=place_id:${p.placeId}`;
-  } else if (p.mapsUrl && !p.mapsUrl.match(/\/place\/\?q=-?\d/)) {
-    // 정상 URL (구 좌표 URL 아닌 경우)
-    gmUrl = p.mapsUrl;
+  } else if (p.lat && p.lng) {
+    // 좌표 → 핀 드롭 (항상 정확한 위치, "검색 결과 없음" 없음)
+    gmUrl = `https://maps.google.com/maps?q=${p.lat},${p.lng}`;
   } else {
-    // 폴백: 이름+주소 검색
+    // 폴백: 이름+주소 텍스트 검색
     const q = encodeURIComponent([p.name, p.address].filter(Boolean).join(' '));
     gmUrl = `https://www.google.com/maps/search/?api=1&query=${q}`;
   }
