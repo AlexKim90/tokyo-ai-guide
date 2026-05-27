@@ -38,46 +38,47 @@ export default async function handler(req, res) {
     } else if (type === 'expand') {
       if (!url) return res.status(400).json({ error: 'Missing url' });
 
-      // 1) Full Google Maps URL — parse place name directly
+      // 1) Full Google Maps URL — parse place name directly (no redirect needed)
       const directMatch = url.match(/\/maps\/place\/([^\/@?]+)/);
       if (directMatch) {
         return res.status(200).json({ name: decodeURIComponent(directMatch[1].replace(/\+/g, ' ')), finalUrl: url });
       }
 
-      // 2) Strip app-share tracking params (g_st=i from iOS, etc.) before following redirect
-      //    These params can cause Google to return app-scheme redirects instead of web URLs
-      const cleanUrl = url.replace(/([?&])g_st=[^&]*(&|$)/g, (_, p, s) => s === '&' ? p : '').replace(/[?&]$/, '');
+      // 2) Strip iOS/Android share tracking params (g_st=i, etc.) that alter redirect behavior
+      const cleanUrl = url.replace(/([?&])g_st=[^&]*/g, '').replace(/\?&/, '?').replace(/[?&]$/, '');
 
-      // 3) Short URL — follow the redirect (no-follow, manual)
-      const r1 = await fetch(cleanUrl, { redirect: 'manual', headers: { 'User-Agent': UA_MOBILE } });
-      const location = r1.headers.get('location') || '';
+      // 3) Follow ALL redirects automatically (desktop UA — needed for entitylist preload to appear in HTML)
+      //    redirect:'follow' handles multi-hop chains: maps.app.goo.gl → goo.gl → google.com/maps
+      const r1 = await fetch(cleanUrl, {
+        redirect: 'follow',
+        headers: {
+          'User-Agent': UA_DESKTOP,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8'
+        }
+      });
+      const finalUrl = r1.url;
+      const html = await r1.text();
 
-      // 3) Check if redirect goes to a list (@/data= pattern) or a place
-      const isListUrl = location.includes('/maps/@/') && location.includes('!2s');
+      // 4) Detect list vs single place by looking for entitylist preload in HTML
+      //    (more reliable than URL pattern matching which breaks when Google changes URL formats)
+      const preloadMatch = html.match(/href="(\/maps\/preview\/entitylist\/getlist[^"]+)"/);
 
-      if (!isListUrl) {
-        // Single place — try to extract name from redirect URL
-        const nameMatch = location.match(/\/maps\/place\/([^\/@?]+)/);
+      if (!preloadMatch) {
+        // Not a list — try to get place name from final URL
+        const nameMatch = finalUrl.match(/\/maps\/place\/([^\/@?]+)/);
         const name = nameMatch ? decodeURIComponent(nameMatch[1].replace(/\+/g, ' ')) : null;
-        return res.status(200).json({ name, finalUrl: location || url });
+        return res.status(200).json({ name, finalUrl });
       }
 
       // ---- IT'S A SAVED LIST ----
-      // 4) Fetch the Maps page to find the entitylist preload URL
-      const fullLocation = location.startsWith('http') ? location : `https://www.google.com${location}`;
-      const r2 = await fetch(fullLocation, { headers: { 'User-Agent': UA_DESKTOP } });
-      const html = await r2.text();
-
-      const preloadMatch = html.match(/href="(\/maps\/preview\/entitylist\/getlist[^"]+)"/);
-      if (!preloadMatch) return res.status(200).json({ name: null, finalUrl: location, isList: false });
-
-      // 5) Fetch the list JSON
+      // 5) Fetch the list JSON using preload URL found in HTML
       const listUrl = `https://www.google.com${preloadMatch[1].replace(/&amp;/g, '&')}`;
-      const r3 = await fetch(listUrl, { headers: { 'User-Agent': UA_DESKTOP } });
-      const raw = await r3.text();
+      const r2 = await fetch(listUrl, { headers: { 'User-Agent': UA_DESKTOP } });
+      const raw = await r2.text();
       const text = raw.startsWith(")]}'") ? raw.slice(5) : raw;
 
-      // 6) Extract list name — appears after googleusercontent owner avatar URL
+      // 6) Extract list name
       let listName = 'Google Maps 리스트';
       const lnMatch = text.match(/googleusercontent\.com[^"]*","[^"]+"\],"([^"]{1,40})"/);
       if (lnMatch) listName = lnMatch[1];
