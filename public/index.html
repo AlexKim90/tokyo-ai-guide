@@ -2121,20 +2121,29 @@ const SLOT_ICONS = { '아침': '🌅', '점심': '🍽️', '저녁': '🌆', '�
 
 let _renderPlaces = [];
 
-function showPlaceDetail(ridx) {
+async function showPlaceDetail(ridx) {
   const place = _renderPlaces[ridx];
   if (!place) return;
   const el = document.getElementById('placeDetailContent');
-  el.innerHTML = renderPlaceDetailContent(place, null);
+  el.innerHTML = renderPlaceDetailContent(place, null, null);
   document.getElementById('placeDetailModal').classList.add('on');
   if (place.placeId) {
-    getPlaceDetails(place.placeId).then(d => {
-      if (d) el.innerHTML = renderPlaceDetailContent(place, d);
-    }).catch(() => {});
+    try {
+      const detail = await getPlaceDetails(place.placeId);
+      if (!detail) return;
+      el.innerHTML = renderPlaceDetailContent(place, detail, null);
+      if (detail.photoName) {
+        try {
+          const pr = await fetch(`/api/maps?type=photo&name=${encodeURIComponent(detail.photoName)}`);
+          const pd = await pr.json();
+          if (pd.url) el.innerHTML = renderPlaceDetailContent(place, detail, pd.url);
+        } catch {}
+      }
+    } catch {}
   }
 }
 
-function renderPlaceDetailContent(place, detail) {
+function renderPlaceDetailContent(place, detail, photoUrl) {
   const tags = getTags(place);
   const rating = detail?.rating || place.rating;
   const ratingCount = detail?.user_ratings_total || place.ratingCount;
@@ -2172,6 +2181,7 @@ function renderPlaceDetailContent(place, detail) {
 
   return `
     <div style="padding-top:4px">
+      ${photoUrl ? `<div style="margin:-4px -16px 14px;height:200px;overflow:hidden;border-radius:12px"><img src="${photoUrl}" alt="${place.name}" style="width:100%;height:100%;object-fit:cover"></div>` : ''}
       <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px">${place.name}</div>
       ${tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${tags.map(t=>`<span class="placeTag">${t}</span>`).join('')}</div>` : ''}
       ${rating ? `<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">⭐ ${rating}${ratingCount ? ` <span style="color:var(--ink3)">(${ratingCount.toLocaleString()}개 리뷰)</span>` : ''}</div>` : ''}

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ results });
 
     } else if (type === 'details') {
-      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types,location,editorialSummary,priceLevel,reservable,parkingOptions';
+      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types,location,editorialSummary,priceLevel,reservable,parkingOptions,photos';
       const r = await fetch(`https://places.googleapis.com/v1/places/${place_id}`, {
         headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': fields, 'Accept-Language': 'ko' }
       });
@@ -71,7 +71,8 @@ export default async function handler(req, res) {
         editorial: p.editorialSummary?.text || '',
         priceLevel: p.priceLevel || '',
         reservable: p.reservable ?? null,
-        parkingOptions: p.parkingOptions || null
+        parkingOptions: p.parkingOptions || null,
+        photoName: p.photos?.[0]?.name || ''
       }});
 
     } else if (type === 'expand') {
@@ -146,6 +147,15 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ isList: true, listName, places });
+
+    } else if (type === 'photo') {
+      const { name } = req.query;
+      if (!name) return res.status(400).json({ error: 'Missing name' });
+      const r = await fetch(`https://places.googleapis.com/v1/${name}/media?maxWidthPx=600&skipHttpRedirect=true`, {
+        headers: { 'X-Goog-Api-Key': key }
+      });
+      const d = await r.json();
+      return res.status(200).json({ url: d.photoUri || '' });
 
     } else if (type === 'directions') {
       const { origin, destination } = req.query;
