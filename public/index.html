@@ -136,6 +136,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .exploreResultMeta{font-size:11px;color:var(--ink3);margin-bottom:8px;display:flex;align-items:center;gap:5px;}
 .exploreResultBtns{display:flex;gap:6px;flex-wrap:wrap;}
 .planToggleBtn{margin:4px 14px 10px;width:calc(100% - 28px);padding:10px;border-radius:10px;border:0.5px solid var(--bdr);background:var(--card);font-family:var(--font);font-size:13px;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.scheduleBar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 8px;flex-shrink:0;}
+.confirmBtn{flex:1;padding:10px;border-radius:10px;border:none;background:#1a9e5c;color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.confirmBtn:active{opacity:.85;}
+.editBtn{padding:10px 16px;border-radius:10px;border:0.5px solid var(--bdr);background:var(--bg);color:var(--ink2);font-family:var(--font);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+.confirmedBadge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1a9e5c;}
 .planSection{background:var(--card);border-radius:var(--r);margin:0 14px 10px;border:0.5px solid var(--bdr);padding:14px;display:none;}
 .planSection.on{display:block;}
 .planFormRow{margin-bottom:10px;}
@@ -380,6 +385,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
         </button>
         <div class="planResult" id="aiPlanResult" style="display:none;margin-top:12px;"></div>
       </div>
+      <!-- 확정/편집 바 -->
+      <div class="scheduleBar" id="scheduleBar"></div>
       <!-- 날짜 선택 -->
       <div class="daySelector" id="daySelector"></div>
       <!-- 일정 슬롯 -->
@@ -2119,8 +2126,32 @@ let scheduleData = (() => {
 let activeDay = 0;
 let pickerTarget = null;
 let pickerFilterTag = '';
+let scheduleConfirmed = JSON.parse(localStorage.getItem('tokyoScheduleConfirmed') || 'false');
 
 function saveSchedule() { localStorage.setItem('tokyoSchedule', JSON.stringify(scheduleData)); }
+
+function confirmSchedule() {
+  scheduleConfirmed = true;
+  localStorage.setItem('tokyoScheduleConfirmed', 'true');
+  renderSchedule();
+}
+
+function editSchedule() {
+  scheduleConfirmed = false;
+  localStorage.setItem('tokyoScheduleConfirmed', 'false');
+  renderSchedule();
+}
+
+function renderScheduleBar() {
+  const bar = document.getElementById('scheduleBar');
+  if (scheduleConfirmed) {
+    bar.innerHTML = `
+      <div class="confirmedBadge"><i class="ti ti-circle-check-filled" style="font-size:16px"></i> 일정 확정됨</div>
+      <button class="editBtn" onclick="editSchedule()"><i class="ti ti-pencil" style="font-size:12px"></i> 편집</button>`;
+  } else {
+    bar.innerHTML = `<button class="confirmBtn" onclick="confirmSchedule()"><i class="ti ti-circle-check" style="font-size:15px"></i> 일정 확정하기</button>`;
+  }
+}
 
 function addDay() {
   if (scheduleData.plan.length >= 10) return;
@@ -2142,8 +2173,9 @@ function renderDayTabs() {
   const tabs = scheduleData.plan.map((_, i) =>
     `<div class="dayTab ${i === activeDay ? 'on' : ''}" onclick="setActiveDay(${i})">Day ${i + 1}</div>`
   ).join('');
-  document.getElementById('daySelector').innerHTML =
-    `<div class="dayCtrl" onclick="removeDay()">−</div>${tabs}<div class="dayCtrl" onclick="addDay()">+</div>`;
+  document.getElementById('daySelector').innerHTML = scheduleConfirmed
+    ? tabs
+    : `<div class="dayCtrl" onclick="removeDay()">−</div>${tabs}<div class="dayCtrl" onclick="addDay()">+</div>`;
 }
 
 function renderScheduleBody() {
@@ -2152,25 +2184,29 @@ function renderScheduleBody() {
 
   // 숙소 (단일)
   const hotel = day['숙소'];
-  const hotelContent = hotel
-    ? `<div class="slotCard" style="margin-top:6px">
-        <div style="font-size:18px">🏨</div>
-        <div style="flex:1;min-width:0">
-          <div class="slotPlaceName">${hotel.name}</div>
-          ${hotel.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hotel.address}</div>` : ''}
-        </div>
-        <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
-      </div>`
-    : `<div class="slotEmpty" data-day="${activeDay}" data-slot="숙소" onclick="openSlotPicker(this)" style="margin-top:6px">
-        <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
-        <span style="font-size:12px;color:var(--ink3)">숙소 추가</span>
-      </div>`;
+  let hotelContent;
+  if (hotel) {
+    hotelContent = `<div class="slotCard" style="margin-top:6px">
+      <div style="font-size:18px">🏨</div>
+      <div style="flex:1;min-width:0">
+        <div class="slotPlaceName">${hotel.name}</div>
+        ${hotel.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hotel.address}</div>` : ''}
+      </div>
+      ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : ''}
+    </div>`;
+  } else if (!scheduleConfirmed) {
+    hotelContent = `<div class="slotEmpty" data-day="${activeDay}" data-slot="숙소" onclick="openSlotPicker(this)" style="margin-top:6px">
+      <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
+      <span style="font-size:12px;color:var(--ink3)">숙소 추가</span>
+    </div>`;
+  } else {
+    hotelContent = `<div style="font-size:12px;color:var(--ink3);padding:8px 0">미지정</div>`;
+  }
   html += `<div class="hotelBlock"><div class="slotLabel">🏨 숙소</div>${hotelContent}</div>`;
 
   // 시간 슬롯 (다중)
   html += SLOTS.map(slot => {
     const places = Array.isArray(day[slot]) ? day[slot] : [];
-    const hotel = day['숙소'];
     const cards = places.map((place, pi) => {
       const dist = distLabel(hotel, place);
       return `<div class="slotCard">
@@ -2181,20 +2217,30 @@ function renderScheduleBody() {
             ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
           </div>
         </div>
-        <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
+        ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : ''}
       </div>`;
     }).join('');
-    const addBtn = `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
-      <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
-      <span style="font-size:12px;color:var(--ink3)">장소 추가</span>
-    </div>`;
+    const addBtn = !scheduleConfirmed
+      ? `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
+          <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
+          <span style="font-size:12px;color:var(--ink3)">장소 추가</span>
+        </div>` : '';
+    if (scheduleConfirmed && !places.length) return ''; // 확정 모드에서 빈 슬롯 숨김
     return `<div class="slotBlock"><div class="slotLabel">${SLOT_ICONS[slot]} ${slot}</div><div class="slotCards">${cards}${addBtn}</div></div>`;
   }).join('');
 
   document.getElementById('scheduleBody').innerHTML = html;
 }
 
-function renderSchedule() { renderDayTabs(); renderScheduleBody(); }
+function renderSchedule() {
+  renderScheduleBar();
+  const aiBtn = document.querySelector('.planToggleBtn');
+  const aiSec = document.getElementById('aiPlanSection');
+  if (aiBtn) aiBtn.style.display = scheduleConfirmed ? 'none' : '';
+  if (scheduleConfirmed && aiSec) aiSec.style.display = 'none';
+  renderDayTabs();
+  renderScheduleBody();
+}
 
 function removeSlot(btn) {
   const day = parseInt(btn.dataset.day);
@@ -2309,7 +2355,7 @@ async function genAIPlan() {
   btn.disabled = false; btn.innerHTML = '<i class="ti ti-sparkles"></i> AI 일정 생성';
 }
 
-function initSchedule() { renderDayTabs(); renderScheduleBody(); }
+function initSchedule() { renderSchedule(); }
 
 /* ===== Init ===== */
 renderList();
