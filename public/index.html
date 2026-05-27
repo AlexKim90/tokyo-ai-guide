@@ -1095,7 +1095,7 @@ const ALL_TAGS = ['#라멘','#스시','#이자카야','#카페','#돈카츠','#�
 
 function getTags(p) {
   if (p.tag) return [p.tag];
-  return getTags(p);
+  return detectTags(p.name, p.category, p.placeTypes);
 }
 
 async function claudeTagPlaces(names) {
