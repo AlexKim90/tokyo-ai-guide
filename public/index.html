@@ -353,6 +353,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
         <button class="primary" onclick="openAddModal()"><i class="ti ti-search" style="font-size:14px"></i> 장소 검색</button>
         <button onclick="openGoogleMapsPopup()"><i class="ti ti-brand-google-maps" style="font-size:14px"></i> 구글 리스트</button>
         <button onclick="openPasteModal()" style="padding:9px 10px;"><i class="ti ti-link" style="font-size:14px"></i></button>
+        <button onclick="clearAllPlaces()" id="clearAllBtn" style="color:var(--red);border-color:var(--red);"><i class="ti ti-trash" style="font-size:14px"></i> 전체삭제</button>
       </div>
       <div class="tagFilterRow" id="tagFilterRow" style="display:none;"></div>
       <div class="scroll" id="listBody" style="padding-top:10px;"></div>
@@ -1053,7 +1054,7 @@ function fmtPlain(t) {
 /* ===== TAB 1: 내 리스트 ===== */
 function getUniqueTags() {
   const tags = new Set();
-  savedPlaces.forEach(p => detectTags(p.name, p.category).forEach(t => tags.add(t)));
+  savedPlaces.forEach(p => detectTags(p.name, p.category, p.placeTypes).forEach(t => tags.add(t)));
   return [...tags];
 }
 
@@ -1074,9 +1075,11 @@ function setListTag(tag) {
 
 function renderList() {
   renderTagFilter();
+  const clearBtn = document.getElementById('clearAllBtn');
+  if (clearBtn) clearBtn.style.display = savedPlaces.length ? '' : 'none';
   const body = document.getElementById('listBody');
   const filtered = activeListTag
-    ? savedPlaces.filter(p => detectTags(p.name, p.category).includes(activeListTag))
+    ? savedPlaces.filter(p => detectTags(p.name, p.category, p.placeTypes).includes(activeListTag))
     : savedPlaces;
   if (savedPlaces.length === 0) {
     body.innerHTML = `<div class="emptyState"><div class="emptyIcon"><i class="ti ti-bookmark-off"></i></div><div class="emptyTitle">저장된 장소가 없어요</div><div class="emptyDesc">장소 검색이나 구글맵 링크로 추가하세요</div></div>`;
@@ -1088,22 +1091,24 @@ function renderList() {
   }
 }
 
-function detectTags(name, category) {
-  const s = ((name || '') + ' ' + (category || '')).toLowerCase();
+function detectTags(name, category, types) {
+  const typeStr = (Array.isArray(types) ? types : []).join(' ');
+  const s = ((name || '') + ' ' + (category || '') + ' ' + typeStr).toLowerCase();
   const tags = [];
-  // 음식 종류 — 한자·히라가나·카타카나 폭넓게 커버
-  if (/라멘|ramen|ラーメン|らーめん|拉麺|ラ麺/.test(s)) tags.push('#라멘');
-  if (/스시|sushi|すし|スシ|寿司|鮨|鮓|초밥/.test(s)) tags.push('#스시');
+  // 음식 종류 — 한자·히라가나·카타카나 + Google Places types 폭넓게 커버
+  if (/라멘|ramen|ラーメン|らーめん|拉麺|ラ麺|ramen_restaurant/.test(s)) tags.push('#라멘');
+  if (/스시|sushi|すし|スシ|寿司|鮨|鮓|초밥|sushi_restaurant/.test(s)) tags.push('#스시');
   if (/이자카야|izakaya|居酒屋|いざかや/.test(s)) tags.push('#이자카야');
-  if (/카페|cafe|coffee|珈琲|コーヒー|カフェ|スタバ|starbucks|tully|ドトール|ルノアール/.test(s)) tags.push('#카페');
+  if (/카페|cafe|coffee|珈琲|コーヒー|カフェ|スタバ|starbucks|tully|ドトール|ルノアール|coffee_shop/.test(s)) tags.push('#카페');
   if (/돈카츠|tonkatsu|とんかつ|トンカツ|カツ|かつ|勝/.test(s) && !/チキンカツ/.test(s)) tags.push('#돈카츠');
-  if (/야키니쿠|焼肉|焼き肉|yakiniku|牛肉|ホルモン/.test(s)) tags.push('#야키니쿠');
+  if (/야키니쿠|焼肉|焼き肉|yakiniku|牛肉|ホルモン|barbecue_restaurant/.test(s)) tags.push('#야키니쿠');
   if (/우동|udon|うどん|ウドン|饂飩/.test(s)) tags.push('#우동');
   if (/소바|soba|そば|ソバ|蕎麦/.test(s)) tags.push('#소바');
   if (/야키토리|yakitori|焼き鳥|焼鳥|やきとり/.test(s)) tags.push('#야키토리');
   if (/텐푸라|tempura|天ぷら|天麩羅|てんぷら/.test(s)) tags.push('#텐푸라');
-  if (/스테이크|steak|ステーキ/.test(s)) tags.push('#스테이크');
-  if (/스키야키|샤부|しゃぶ|すき焼|鍋|なべ|nabe/.test(s)) tags.push('#나베');
+  if (/스테이크|steak|ステーキ|steak_house/.test(s)) tags.push('#스테이크');
+  if (/스키야키|샤부|しゃぶ|すき焼|鍋|なべ|nabe|hot_pot_restaurant/.test(s)) tags.push('#나베');
+  if (/seafood|海鮮|かいせん|魚|さかな|해산물|seafood_restaurant/.test(s)) tags.push('#해산물');
   if (/バー|ば[ー]|居酒|酒場|bar|비어/.test(s) && !tags.length) tags.push('#바');
   // 숙박·관광·기타
   if (/golf|ゴルフ|골프/.test(s)) tags.push('#골프');
@@ -1112,6 +1117,8 @@ function detectTags(name, category) {
   if (/shrine|神社|신사|temple|寺院|寺|사원/.test(s)) tags.push('#신사·사원');
   if (/공원|park|公園/.test(s)) tags.push('#공원');
   if (/shopping|쇼핑|百貨|department|デパート|モール|ドン・キ/.test(s)) tags.push('#쇼핑');
+  // 일식 폴백 (일식 전체지만 세부 태그 없을 때)
+  if (!tags.length && /japanese_restaurant|和食|わしょく|일식/.test(s)) tags.push('#일식');
   // 식당 폴백 (아무 태그도 없을 때)
   if (!tags.length && /restaurant|food|meal|食堂|食事|定食|料理/.test(s)) tags.push('#식당');
   return tags.slice(0, 3);
@@ -1131,7 +1138,7 @@ function buildPlaceCard(p, i) {
     gmUrl = `https://www.google.com/maps/search/?api=1&query=${q}`;
   }
   const rat = p.rating ? `⭐ ${p.rating}` : '';
-  const tags = detectTags(p.name, p.category);
+  const tags = detectTags(p.name, p.category, p.placeTypes);
   const tagsHtml = tags.length ? `<div class="placeTags">${tags.map(t => `<span class="placeTag">${t}</span>`).join('')}</div>` : '';
   return `<div class="placeCard">
     <div class="placeCardTop">
@@ -1161,6 +1168,14 @@ function savePlace(place) {
 
 function deletePlace(i) {
   savedPlaces.splice(i, 1);
+  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  renderList();
+}
+
+function clearAllPlaces() {
+  if (!savedPlaces.length) return;
+  if (!confirm(`저장된 장소 ${savedPlaces.length}개를 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  savedPlaces.length = 0;
   localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
   renderList();
 }
@@ -1202,6 +1217,7 @@ async function addFromSearch(i) {
   savePlace({
     name: detail?.name || r.name,
     category: r.types?.[0]?.replace(/_/g, ' ') || '장소',
+    placeTypes: r.types || [],
     address: detail?.formatted_address || r.formatted_address,
     rating: detail?.rating || r.rating,
     ratingCount: detail?.user_ratings_total || r.user_ratings_total,
@@ -1324,7 +1340,8 @@ async function enrichPlaceIds(names) {
         rating: detail?.rating || null,
         ratingCount: detail?.user_ratings_total || null,
         mapsUrl: detail?.url || savedPlaces[idx].mapsUrl,
-        category: (match.types?.[0] || '장소').replace(/_/g, ' ')
+        category: (match.types?.[0] || '장소').replace(/_/g, ' '),
+        placeTypes: match.types || []
       };
     } catch { /* 실패해도 기존 URL 유지 */ }
   }
@@ -1351,6 +1368,7 @@ async function addPlaceByName(name, originalUrl) {
     savePlace({
       name: detail?.name || top.name,
       category: (top.types?.[0] || '장소').replace(/_/g, ' '),
+      placeTypes: top.types || [],
       address: detail?.formatted_address || top.formatted_address || '',
       rating: detail?.rating || top.rating,
       ratingCount: detail?.user_ratings_total || top.user_ratings_total,
@@ -2080,7 +2098,7 @@ function renderScheduleBody() {
             <div class="slotPlaceName">${place.name}</div>
             ${place.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${place.address}</div>` : ''}
           </div>
-          ${detectTags(place.name, place.category)[0] ? `<span class="slotPlaceTag">${detectTags(place.name, place.category)[0]}</span>` : ''}
+          ${detectTags(place.name, place.category, place.placeTypes)[0] ? `<span class="slotPlaceTag">${detectTags(place.name, place.category, place.placeTypes)[0]}</span>` : ''}
           <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
         </div>`
       : `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
@@ -2117,12 +2135,12 @@ function renderPickerModal() {
   document.getElementById('pickerTagRow').innerHTML = allChip + tagChips;
 
   const indexed = pickerFilterTag
-    ? savedPlaces.map((p, i) => ({ p, i })).filter(({ p }) => detectTags(p.name, p.category).includes(pickerFilterTag))
+    ? savedPlaces.map((p, i) => ({ p, i })).filter(({ p }) => detectTags(p.name, p.category, p.placeTypes).includes(pickerFilterTag))
     : savedPlaces.map((p, i) => ({ p, i }));
 
   document.getElementById('pickerList').innerHTML = indexed.length
     ? indexed.map(({ p, i }) => {
-        const tag = detectTags(p.name, p.category)[0] || '';
+        const tag = detectTags(p.name, p.category, p.placeTypes)[0] || '';
         return `<div class="pickerItem" onclick="pickPlace(${i})">
           <div style="flex:1;min-width:0">
             <div class="pickerItemName">${p.name}</div>
@@ -2159,7 +2177,7 @@ function renderAIPlaceList() {
     return;
   }
   container.innerHTML = savedPlaces.map((p, i) => {
-    const tag = detectTags(p.name, p.category)[0] || '';
+    const tag = detectTags(p.name, p.category, p.placeTypes)[0] || '';
     return `<div class="aiPlaceChip on" data-idx="${i}" onclick="this.classList.toggle('on')">${p.name}${tag ? ` <span style="opacity:.65;font-size:10px">${tag}</span>` : ''}</div>`;
   }).join('');
 }
@@ -2181,7 +2199,7 @@ async function genAIPlan() {
   res.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:4px 0">✨ 동선 최적화 중...</div>';
   try {
     const placeList = places.map(p => {
-      const tag = detectTags(p.name, p.category)[0] || '';
+      const tag = detectTags(p.name, p.category, p.placeTypes)[0] || '';
       return `- ${p.name}${tag ? ' ' + tag : ''}${p.address ? ` (${p.address})` : ''}`;
     }).join('\n');
     const reply = await callClaude(SYS_PLAN, [{
