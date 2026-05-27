@@ -305,6 +305,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .dayCtrl{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--bdr);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;line-height:1;color:var(--ink2);flex-shrink:0;}
 .dayCtrl:active{background:var(--red-l);}
 .slotBlock{margin:0 14px 10px;}
+.hotelBlock{background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--r);padding:10px 13px;margin:8px 14px 12px;}
+.slotCards{display:flex;flex-direction:column;gap:6px;}
 .slotLabel{font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
 .slotCard{background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;gap:10px;}
 .slotEmpty{background:var(--bg);border:1.5px dashed var(--bdr);border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;}
@@ -2079,13 +2081,21 @@ if ('serviceWorker' in navigator) {
 const SLOTS = ['아침', '점심', '저녁', '밤'];
 const SLOT_ICONS = { '아침': '🌅', '점심': '🍽️', '저녁': '🌆', '밤': '🌙' };
 
+function makeDay() { return { '숙소': null, '아침': [], '점심': [], '저녁': [], '밤': [] }; }
+function migrateDay(d) {
+  // 기존 null 슬롯 → 배열로 변환
+  const out = { '숙소': d['숙소'] || null };
+  for (const s of SLOTS) out[s] = Array.isArray(d[s]) ? d[s] : (d[s] ? [d[s]] : []);
+  return out;
+}
+
 let scheduleData = (() => {
-  try { return JSON.parse(localStorage.getItem('tokyoSchedule') || 'null'); } catch { return null; }
-})() || { plan: [
-  { '아침': null, '점심': null, '저녁': null, '밤': null },
-  { '아침': null, '점심': null, '저녁': null, '밤': null },
-  { '아침': null, '점심': null, '저녁': null, '밤': null },
-]};
+  try {
+    const raw = JSON.parse(localStorage.getItem('tokyoSchedule') || 'null');
+    if (raw?.plan) raw.plan = raw.plan.map(migrateDay);
+    return raw;
+  } catch { return null; }
+})() || { plan: [makeDay(), makeDay(), makeDay()] };
 
 let activeDay = 0;
 let pickerTarget = null;
@@ -2095,7 +2105,7 @@ function saveSchedule() { localStorage.setItem('tokyoSchedule', JSON.stringify(s
 
 function addDay() {
   if (scheduleData.plan.length >= 10) return;
-  scheduleData.plan.push({ '아침': null, '점심': null, '저녁': null, '밤': null });
+  scheduleData.plan.push(makeDay());
   activeDay = scheduleData.plan.length - 1;
   saveSchedule(); renderSchedule();
 }
@@ -2119,30 +2129,59 @@ function renderDayTabs() {
 
 function renderScheduleBody() {
   const day = scheduleData.plan[activeDay];
-  document.getElementById('scheduleBody').innerHTML = SLOTS.map(slot => {
-    const place = day[slot];
-    const content = place
-      ? `<div class="slotCard">
-          <div style="font-size:20px">${SLOT_ICONS[slot]}</div>
-          <div style="flex:1;min-width:0">
-            <div class="slotPlaceName">${place.name}</div>
-            ${place.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${place.address}</div>` : ''}
-          </div>
-          ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
-          <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
-        </div>`
-      : `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
-          <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
-          <span style="font-size:12px;color:var(--ink3)">장소 추가</span>
-        </div>`;
-    return `<div class="slotBlock"><div class="slotLabel">${SLOT_ICONS[slot]} ${slot}</div>${content}</div>`;
+  let html = '';
+
+  // 숙소 (단일)
+  const hotel = day['숙소'];
+  const hotelContent = hotel
+    ? `<div class="slotCard" style="margin-top:6px">
+        <div style="font-size:18px">🏨</div>
+        <div style="flex:1;min-width:0">
+          <div class="slotPlaceName">${hotel.name}</div>
+          ${hotel.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hotel.address}</div>` : ''}
+        </div>
+        <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
+      </div>`
+    : `<div class="slotEmpty" data-day="${activeDay}" data-slot="숙소" onclick="openSlotPicker(this)" style="margin-top:6px">
+        <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
+        <span style="font-size:12px;color:var(--ink3)">숙소 추가</span>
+      </div>`;
+  html += `<div class="hotelBlock"><div class="slotLabel">🏨 숙소</div>${hotelContent}</div>`;
+
+  // 시간 슬롯 (다중)
+  html += SLOTS.map(slot => {
+    const places = Array.isArray(day[slot]) ? day[slot] : [];
+    const cards = places.map((place, pi) =>
+      `<div class="slotCard">
+        <div style="flex:1;min-width:0">
+          <div class="slotPlaceName">${place.name}</div>
+          ${place.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${place.address}</div>` : ''}
+        </div>
+        ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
+        <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
+      </div>`
+    ).join('');
+    const addBtn = `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
+      <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
+      <span style="font-size:12px;color:var(--ink3)">장소 추가</span>
+    </div>`;
+    return `<div class="slotBlock"><div class="slotLabel">${SLOT_ICONS[slot]} ${slot}</div><div class="slotCards">${cards}${addBtn}</div></div>`;
   }).join('');
+
+  document.getElementById('scheduleBody').innerHTML = html;
 }
 
 function renderSchedule() { renderDayTabs(); renderScheduleBody(); }
 
 function removeSlot(btn) {
-  scheduleData.plan[parseInt(btn.dataset.day)][btn.dataset.slot] = null;
+  const day = parseInt(btn.dataset.day);
+  const slot = btn.dataset.slot;
+  const index = parseInt(btn.dataset.index);
+  if (slot === '숙소') {
+    scheduleData.plan[day]['숙소'] = null;
+  } else {
+    scheduleData.plan[day][slot].splice(index, 1);
+  }
   saveSchedule(); renderScheduleBody();
 }
 
@@ -2185,7 +2224,13 @@ function setPickerTag(tag) { pickerFilterTag = tag; renderPickerModal(); }
 
 function pickPlace(idx) {
   if (!pickerTarget) return;
-  scheduleData.plan[pickerTarget.day][pickerTarget.slot] = savedPlaces[idx];
+  const { day, slot } = pickerTarget;
+  if (slot === '숙소') {
+    scheduleData.plan[day]['숙소'] = savedPlaces[idx];
+  } else {
+    if (!Array.isArray(scheduleData.plan[day][slot])) scheduleData.plan[day][slot] = [];
+    scheduleData.plan[day][slot].push(savedPlaces[idx]);
+  }
   saveSchedule(); renderScheduleBody();
   closeModal('placePicker');
 }
