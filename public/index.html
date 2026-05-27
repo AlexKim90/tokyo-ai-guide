@@ -1254,7 +1254,9 @@ async function addFromSearch(i) {
     rating: detail?.rating || r.rating,
     ratingCount: detail?.user_ratings_total || r.user_ratings_total,
     mapsUrl: detail?.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`,
-    placeId: r.place_id
+    placeId: r.place_id,
+    lat: detail?.lat ?? r.lat,
+    lng: detail?.lng ?? r.lng
   });
   closeModal('addModal');
   document.getElementById('addSearchInp').value = '';
@@ -1373,7 +1375,9 @@ async function enrichPlaceIds(names) {
         ratingCount: detail?.user_ratings_total || null,
         mapsUrl: detail?.url || savedPlaces[idx].mapsUrl,
         category: (match.types?.[0] || '장소').replace(/_/g, ' '),
-        placeTypes: match.types || []
+        placeTypes: match.types || [],
+        lat: detail?.lat ?? match.lat ?? savedPlaces[idx].lat,
+        lng: detail?.lng ?? match.lng ?? savedPlaces[idx].lng
       };
     } catch { /* 실패해도 기존 URL 유지 */ }
   }
@@ -1405,7 +1409,9 @@ async function addPlaceByName(name, originalUrl) {
       rating: detail?.rating || top.rating,
       ratingCount: detail?.user_ratings_total || top.user_ratings_total,
       mapsUrl: detail?.url || originalUrl || `https://www.google.com/maps/search/?api=1&query_place_id=${top.place_id}`,
-      placeId: top.place_id
+      placeId: top.place_id,
+      lat: detail?.lat ?? top.lat,
+      lng: detail?.lng ?? top.lng
     });
     goToListTab(); closeModal('pasteModal'); resetPasteModal();
   } catch {
@@ -2081,6 +2087,19 @@ if ('serviceWorker' in navigator) {
 const SLOTS = ['아침', '점심', '저녁', '밤'];
 const SLOT_ICONS = { '아침': '🌅', '점심': '🍽️', '저녁': '🌆', '밤': '🌙' };
 
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function distLabel(hotel, place) {
+  if (!hotel?.lat || !hotel?.lng || !place?.lat || !place?.lng) return '';
+  const km = haversine(hotel.lat, hotel.lng, place.lat, place.lng);
+  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
+}
+
 function makeDay() { return { '숙소': null, '아침': [], '점심': [], '저녁': [], '밤': [] }; }
 function migrateDay(d) {
   // 기존 null 슬롯 → 배열로 변환
@@ -2151,16 +2170,20 @@ function renderScheduleBody() {
   // 시간 슬롯 (다중)
   html += SLOTS.map(slot => {
     const places = Array.isArray(day[slot]) ? day[slot] : [];
-    const cards = places.map((place, pi) =>
-      `<div class="slotCard">
+    const hotel = day['숙소'];
+    const cards = places.map((place, pi) => {
+      const dist = distLabel(hotel, place);
+      return `<div class="slotCard">
         <div style="flex:1;min-width:0">
           <div class="slotPlaceName">${place.name}</div>
-          ${place.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${place.address}</div>` : ''}
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+            ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
+            ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
+          </div>
         </div>
-        ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
         <button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
     const addBtn = `<div class="slotEmpty" data-day="${activeDay}" data-slot="${slot}" onclick="openSlotPicker(this)">
       <i class="ti ti-plus" style="font-size:14px;color:var(--red-m)"></i>
       <span style="font-size:12px;color:var(--ink3)">장소 추가</span>

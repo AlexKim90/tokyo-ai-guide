@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': key,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.types,places.rating,places.userRatingCount'
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.types,places.rating,places.userRatingCount,places.location'
         },
         body: JSON.stringify({ textQuery: query, languageCode: 'ko' })
       });
@@ -43,12 +43,14 @@ export default async function handler(req, res) {
         formatted_address: p.formattedAddress || '',
         types: p.types || [],
         rating: p.rating,
-        user_ratings_total: p.userRatingCount
+        user_ratings_total: p.userRatingCount,
+        lat: p.location?.latitude,
+        lng: p.location?.longitude
       }));
       return res.status(200).json({ results });
 
     } else if (type === 'details') {
-      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types';
+      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types,location';
       const r = await fetch(`https://places.googleapis.com/v1/places/${place_id}`, {
         headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': fields, 'Accept-Language': 'ko' }
       });
@@ -63,7 +65,9 @@ export default async function handler(req, res) {
         website: p.websiteUri,
         url: p.googleMapsUri,
         place_id: p.id,
-        types: p.types || []
+        types: p.types || [],
+        lat: p.location?.latitude,
+        lng: p.location?.longitude
       }});
 
     } else if (type === 'expand') {
