@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ results });
 
     } else if (type === 'details') {
-      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types,location';
+      const fields = 'id,displayName,formattedAddress,nationalPhoneNumber,regularOpeningHours,rating,userRatingCount,websiteUri,googleMapsUri,types,location,editorialSummary,priceLevel,reservable,parkingOptions';
       const r = await fetch(`https://places.googleapis.com/v1/places/${place_id}`, {
         headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': fields, 'Accept-Language': 'ko' }
       });
@@ -67,7 +67,11 @@ export default async function handler(req, res) {
         place_id: p.id,
         types: p.types || [],
         lat: p.location?.latitude,
-        lng: p.location?.longitude
+        lng: p.location?.longitude,
+        editorial: p.editorialSummary?.text || '',
+        priceLevel: p.priceLevel || '',
+        reservable: p.reservable ?? null,
+        parkingOptions: p.parkingOptions || null
       }});
 
     } else if (type === 'expand') {

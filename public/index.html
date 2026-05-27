@@ -142,7 +142,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .confirmBtn:active{opacity:.85;}
 .editBtn{padding:10px 16px;border-radius:10px;border:0.5px solid var(--bdr);background:var(--bg);color:var(--ink2);font-family:var(--font);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
 .confirmedBadge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1a9e5c;}
-.navBtn{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:20px;background:var(--bg);border:0.5px solid var(--bdr);color:#185FA5;font-size:11px;font-weight:500;text-decoration:none;flex-shrink:0;}
+.navBtn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:12px;background:#1a73e8;color:#fff;font-size:14px;font-weight:600;text-decoration:none;width:100%;}
+.navBtnSecondary{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:12px;background:var(--bg);border:0.5px solid var(--bdr);color:#185FA5;font-size:13px;font-weight:500;text-decoration:none;width:100%;}
+.pdInfoRow{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--bdr);font-size:13px;color:var(--ink2);}
+.pdInfoRow:last-child{border-bottom:none;}
+.pdInfoIcon{width:20px;flex-shrink:0;text-align:center;color:var(--ink3);}
+.pdBadge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;}
+.pdBadgeGreen{background:#e8f5e9;color:#2e7d32;}
+.pdBadgeGray{background:var(--bg);color:var(--ink3);border:0.5px solid var(--bdr);}
+.pdHoursToday{font-weight:600;color:var(--ink);}
+.pdHoursList{font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.7;}
 .planSection{background:var(--card);border-radius:var(--r);margin:0 14px 10px;border:0.5px solid var(--bdr);padding:14px;display:none;}
 .planSection.on{display:block;}
 .planFormRow{margin-bottom:10px;}
@@ -622,6 +631,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
     <div class="modalTitle" style="flex-shrink:0;">장소 선택</div>
     <div class="pickerTagRow" id="pickerTagRow"></div>
     <div class="pickerList" id="pickerList"></div>
+  </div>
+</div>
+
+<!-- Modal: 장소 상세 -->
+<div class="modal" id="placeDetailModal">
+  <div class="modalBg" onclick="closeModal('placeDetailModal')"></div>
+  <div class="modalSheet" style="max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modalHandle"></div>
+    <div id="placeDetailContent" style="overflow-y:auto;flex:1;padding:0 16px 24px;"></div>
   </div>
 </div>
 
@@ -2101,6 +2119,80 @@ if ('serviceWorker' in navigator) {
 const SLOTS = ['아침', '점심', '저녁', '밤'];
 const SLOT_ICONS = { '아침': '🌅', '점심': '🍽️', '저녁': '🌆', '밤': '🌙' };
 
+let _renderPlaces = [];
+
+function showPlaceDetail(ridx) {
+  const place = _renderPlaces[ridx];
+  if (!place) return;
+  const el = document.getElementById('placeDetailContent');
+  el.innerHTML = renderPlaceDetailContent(place, null);
+  document.getElementById('placeDetailModal').classList.add('on');
+  if (place.placeId) {
+    getPlaceDetails(place.placeId).then(d => {
+      if (d) el.innerHTML = renderPlaceDetailContent(place, d);
+    }).catch(() => {});
+  }
+}
+
+function renderPlaceDetailContent(place, detail) {
+  const tags = getTags(place);
+  const rating = detail?.rating || place.rating;
+  const ratingCount = detail?.user_ratings_total || place.ratingCount;
+  const address = detail?.formatted_address || place.address || '';
+  const phone = detail?.formatted_phone_number || '';
+  const website = detail?.website || '';
+  const hours = detail?.opening_hours?.weekday_text || [];
+  const editorial = detail?.editorial || '';
+  const priceLevel = detail?.priceLevel || '';
+  const reservable = detail?.reservable;
+  const parking = detail?.parkingOptions;
+
+  // 가격대
+  const priceMap = { PRICE_LEVEL_FREE:'무료', PRICE_LEVEL_INEXPENSIVE:'💰 저렴', PRICE_LEVEL_MODERATE:'💰💰 보통', PRICE_LEVEL_EXPENSIVE:'💰💰💰 비쌈', PRICE_LEVEL_VERY_EXPENSIVE:'💰💰💰💰 고급' };
+  const priceStr = priceMap[priceLevel] || '';
+
+  // 오늘 영업시간
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const todayHours = hours[todayIdx] || '';
+  const otherHours = hours.filter((_, i) => i !== todayIdx);
+
+  // 주차
+  let parkingStr = '';
+  if (parking) {
+    const hasFree = parking.freeParkingLot || parking.freeStreetParking || parking.freeGarageParking;
+    const hasPaid = parking.paidParkingLot || parking.paidStreetParking || parking.paidGarageParking;
+    const hasValet = parking.valetParking;
+    if (hasFree) parkingStr = '무료 주차 가능';
+    else if (hasPaid) parkingStr = '유료 주차 가능';
+    else if (hasValet) parkingStr = '발레 주차';
+    else parkingStr = '주차 어려움';
+  }
+
+  const loading = !detail ? `<div style="font-size:12px;color:var(--ink3);padding:8px 0">추가 정보 불러오는 중...</div>` : '';
+
+  return `
+    <div style="padding-top:4px">
+      <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px">${place.name}</div>
+      ${tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${tags.map(t=>`<span class="placeTag">${t}</span>`).join('')}</div>` : ''}
+      ${rating ? `<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">⭐ ${rating}${ratingCount ? ` <span style="color:var(--ink3)">(${ratingCount.toLocaleString()}개 리뷰)</span>` : ''}</div>` : ''}
+
+      <div style="display:flex;flex-direction:column;gap:0;border:0.5px solid var(--bdr);border-radius:12px;padding:2px 12px;margin-bottom:16px;background:var(--card);">
+        ${address ? `<div class="pdInfoRow"><span class="pdInfoIcon">📍</span><span>${address}</span></div>` : ''}
+        ${phone ? `<div class="pdInfoRow"><span class="pdInfoIcon">📞</span><a href="tel:${phone}" style="color:#185FA5;text-decoration:none">${phone}</a></div>` : ''}
+        ${todayHours ? `<div class="pdInfoRow"><span class="pdInfoIcon">🕐</span><div><div class="pdHoursToday">${todayHours}</div>${otherHours.length ? `<div class="pdHoursList">${otherHours.join('<br>')}</div>` : ''}</div></div>` : ''}
+        ${priceStr ? `<div class="pdInfoRow"><span class="pdInfoIcon">💳</span><span>${priceStr}</span></div>` : ''}
+        ${reservable === true ? `<div class="pdInfoRow"><span class="pdInfoIcon">📅</span><span class="pdBadge pdBadgeGray">예약 필요</span></div>` : reservable === false ? `<div class="pdInfoRow"><span class="pdInfoIcon">📅</span><span class="pdBadge pdBadgeGreen">예약 불필요</span></div>` : ''}
+        ${parkingStr ? `<div class="pdInfoRow"><span class="pdInfoIcon">🅿️</span><span>${parkingStr}</span></div>` : ''}
+        ${website ? `<div class="pdInfoRow"><span class="pdInfoIcon">🌐</span><a href="${website}" target="_blank" style="color:#185FA5;text-decoration:none;word-break:break-all">${website.replace(/^https?:\/\//,'').split('/')[0]}</a></div>` : ''}
+        ${editorial ? `<div class="pdInfoRow"><span class="pdInfoIcon">ℹ️</span><span style="color:var(--ink3)">${editorial}</span></div>` : ''}
+        ${loading}
+      </div>
+
+      <a href="${navUrl(place)}" target="_blank" class="navBtn" style="margin-bottom:10px"><i class="ti ti-navigation" style="font-size:15px"></i> 구글맵으로 안내받기</a>
+      <a href="${place.placeId ? `https://www.google.com/maps/place/?q=place_id:${place.placeId}` : (place.lat && place.lng ? `https://www.google.com/maps/search/${encodeURIComponent(place.name)}/@${place.lat},${place.lng},17z` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`)}" target="_blank" class="navBtnSecondary"><i class="ti ti-brand-google-maps" style="font-size:14px"></i> 구글맵에서 보기</a>
+    </div>`;
+}
+
 function navUrl(place) {
   const base = 'https://www.google.com/maps/dir/?api=1&travelmode=transit';
   if (place.placeId) return `${base}&destination=${encodeURIComponent(place.name)}&destination_place_id=${place.placeId}`;
@@ -2193,6 +2285,7 @@ function renderDayTabs() {
 }
 
 function renderScheduleBody() {
+  _renderPlaces = [];
   const day = scheduleData.plan[activeDay];
   let html = '';
 
@@ -2200,13 +2293,14 @@ function renderScheduleBody() {
   const hotel = day['숙소'];
   let hotelContent;
   if (hotel) {
-    hotelContent = `<div class="slotCard" style="margin-top:6px">
+    const hotelRidx = _renderPlaces.push(hotel) - 1;
+    hotelContent = `<div class="slotCard" style="margin-top:6px;cursor:pointer;" onclick="showPlaceDetail(${hotelRidx})">
       <div style="font-size:18px">🏨</div>
       <div style="flex:1;min-width:0">
         <div class="slotPlaceName">${hotel.name}</div>
         ${hotel.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hotel.address}</div>` : ''}
       </div>
-      ${scheduleConfirmed ? `<a href="${navUrl(hotel)}" target="_blank" class="navBtn"><i class="ti ti-navigation" style="font-size:12px"></i> 안내</a>` : `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>`}
+      ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="event.stopPropagation();removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : `<i class="ti ti-chevron-right" style="font-size:13px;color:var(--ink3);flex-shrink:0"></i>`}
     </div>`;
   } else if (!scheduleConfirmed) {
     hotelContent = `<div class="slotEmpty" data-day="${activeDay}" data-slot="숙소" onclick="openSlotPicker(this)" style="margin-top:6px">
@@ -2223,8 +2317,9 @@ function renderScheduleBody() {
     const places = Array.isArray(day[slot]) ? day[slot] : [];
     const cards = places.map((place, pi) => {
       const dist = distLabel(hotel, place);
-      return `<div class="slotCard">
-        ${!scheduleConfirmed ? `<div class="dragHandle"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
+      const ridx = _renderPlaces.push(place) - 1;
+      return `<div class="slotCard" onclick="showPlaceDetail(${ridx})" style="cursor:pointer;">
+        ${!scheduleConfirmed ? `<div class="dragHandle" onclick="event.stopPropagation()"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
         <div style="flex:1;min-width:0">
           <div class="slotPlaceName">${place.name}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
@@ -2232,7 +2327,7 @@ function renderScheduleBody() {
             ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
           </div>
         </div>
-        ${scheduleConfirmed ? `<a href="${navUrl(place)}" target="_blank" class="navBtn"><i class="ti ti-navigation" style="font-size:12px"></i> 안내</a>` : `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>`}
+        ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="event.stopPropagation();removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : `<i class="ti ti-chevron-right" style="font-size:13px;color:var(--ink3);flex-shrink:0"></i>`}
       </div>`;
     }).join('');
     const addBtn = !scheduleConfirmed
