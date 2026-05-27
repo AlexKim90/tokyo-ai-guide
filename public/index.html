@@ -615,6 +615,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   <div class="modalSheet">
     <div class="modalHandle"></div>
     <div class="modalTitle">구글맵 링크 붙여넣기</div>
+    <div id="pasteModalHint" style="display:none;background:var(--red-l);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px">구글맵이 열렸어요</div>
+      <div style="font-size:12px;color:var(--ink2);line-height:1.6">저장된 장소 → 원하는 리스트 열기 → <strong>⋮ → 공유 → 링크 복사</strong> 후 아래에 붙여넣으세요</div>
+    </div>
     <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.6">구글맵 → 공유하기 → 링크 복사 후 붙여넣으세요</div>
     <input class="modalInp" id="pasteInp" placeholder="https://maps.app.goo.gl/...">
     <button class="modalBtn" id="pasteBtn" onclick="parsePasteUrl()">장소 불러오기</button>
@@ -1372,6 +1376,7 @@ function resetPasteModal() {
   document.getElementById('pasteFallback').style.display = 'none';
   document.getElementById('pasteNameInp').value = '';
   document.getElementById('pasteNameResult').innerHTML = '';
+  document.getElementById('pasteModalHint').style.display = 'none';
 }
 
 /* ===== (탐색 탭 제거됨 — 일정 짜기로 대체) ===== */
@@ -1950,34 +1955,11 @@ async function askTransit() {
 
 /* ===== 구글맵 팝업 연동 ===== */
 function openGoogleMapsPopup() {
-  // PWA로 설치돼 있으면 공유 시트로 바로 처리됨 — 팝업은 폴백
-  const popup = window.open(
-    'https://www.google.com/maps',
-    'gmaps_saved',
-    'width=430,height=700,scrollbars=yes,resizable=yes'
-  );
-  if (!popup) {
-    // 팝업 차단 → 가이드 모달 표시
-    document.getElementById('gmapsGuideModal').classList.add('on');
-    return;
-  }
-  // 팝업 성공 → 간단한 토스트 안내
-  showToast('구글맵에서 리스트 공유 → 링크 복사 후 창을 닫으세요');
-  const timer = setInterval(async () => {
-    if (!popup.closed) return;
-    clearInterval(timer);
-    try {
-      const text = await navigator.clipboard.readText();
-      const url = text?.match(/(https?:\/\/(?:maps\.app\.goo\.gl|(?:www\.)?google\.com\/maps)[^\s]*)/)?.[1];
-      if (url) {
-        document.getElementById('pasteInp').value = url;
-        openPasteModal();
-        await parsePasteUrl();
-      } else {
-        openPasteModal();
-      }
-    } catch { openPasteModal(); }
-  }, 600);
+  // 구글맵을 새 탭으로 열고 즉시 붙여넣기 모달 표시
+  // 클립보드 자동 감지는 iOS Safari에서 user-gesture 제약으로 동작 불가
+  window.open('https://www.google.com/maps', '_blank');
+  openPasteModal();
+  document.getElementById('pasteModalHint').style.display = '';
 }
 
 function launchGmapsAndWait() {
