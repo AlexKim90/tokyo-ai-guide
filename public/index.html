@@ -1210,7 +1210,10 @@ async function addFromSearch(i) {
 }
 
 async function parsePasteUrl() {
-  const url = document.getElementById('pasteInp').value.trim(); if (!url) return;
+  const raw = document.getElementById('pasteInp').value.trim(); if (!raw) return;
+  // 리스트명 + 링크 형식("이름 https://...") 처리 — URL만 추출
+  const urlMatch = raw.match(/(https?:\/\/(?:maps\.app\.goo\.gl|(?:www\.)?google\.com\/maps)[^\s]*)/);
+  const url = urlMatch ? urlMatch[1] : raw;
   const btn = document.getElementById('pasteBtn');
   const res = document.getElementById('pasteResult');
   btn.disabled = true; btn.textContent = '불러오는 중...';
