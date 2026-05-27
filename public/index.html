@@ -142,7 +142,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .confirmBtn:active{opacity:.85;}
 .editBtn{padding:10px 16px;border-radius:10px;border:0.5px solid var(--bdr);background:var(--bg);color:var(--ink2);font-family:var(--font);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
 .confirmedBadge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1a9e5c;}
-.navBtn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;background:#1a73e8;color:#fff;font-size:12px;font-weight:600;text-decoration:none;}
+.navBtn{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:20px;background:var(--bg);border:0.5px solid var(--bdr);color:#185FA5;font-size:11px;font-weight:500;text-decoration:none;flex-shrink:0;}
 .planSection{background:var(--card);border-radius:var(--r);margin:0 14px 10px;border:0.5px solid var(--bdr);padding:14px;display:none;}
 .planSection.on{display:block;}
 .planFormRow{margin-bottom:10px;}
@@ -2206,7 +2206,7 @@ function renderScheduleBody() {
         <div class="slotPlaceName">${hotel.name}</div>
         ${hotel.address ? `<div style="font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hotel.address}</div>` : ''}
       </div>
-      ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : ''}
+      ${scheduleConfirmed ? `<a href="${navUrl(hotel)}" target="_blank" class="navBtn"><i class="ti ti-navigation" style="font-size:12px"></i> 안내</a>` : `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="숙소" data-index="-1" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>`}
     </div>`;
   } else if (!scheduleConfirmed) {
     hotelContent = `<div class="slotEmpty" data-day="${activeDay}" data-slot="숙소" onclick="openSlotPicker(this)" style="margin-top:6px">
@@ -2223,19 +2223,16 @@ function renderScheduleBody() {
     const places = Array.isArray(day[slot]) ? day[slot] : [];
     const cards = places.map((place, pi) => {
       const dist = distLabel(hotel, place);
-      return `<div class="slotCard" style="flex-direction:column;align-items:stretch;gap:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          ${!scheduleConfirmed ? `<div class="dragHandle"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
-          <div style="flex:1;min-width:0">
-            <div class="slotPlaceName">${place.name}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
-              ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
-              ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
-            </div>
+      return `<div class="slotCard">
+        ${!scheduleConfirmed ? `<div class="dragHandle"><i class="ti ti-grip-vertical" style="font-size:15px"></i></div>` : ''}
+        <div style="flex:1;min-width:0">
+          <div class="slotPlaceName">${place.name}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+            ${getTags(place)[0] ? `<span class="slotPlaceTag">${getTags(place)[0]}</span>` : ''}
+            ${dist ? `<span style="font-size:10px;color:var(--ink3)">🏨 ${dist}</span>` : ''}
           </div>
-          ${!scheduleConfirmed ? `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>` : ''}
         </div>
-        ${scheduleConfirmed ? `<a href="${navUrl(place)}" target="_blank" class="navBtn"><i class="ti ti-navigation" style="font-size:13px"></i> 구글맵으로 안내받기</a>` : ''}
+        ${scheduleConfirmed ? `<a href="${navUrl(place)}" target="_blank" class="navBtn"><i class="ti ti-navigation" style="font-size:12px"></i> 안내</a>` : `<button class="slotRemoveBtn" data-day="${activeDay}" data-slot="${slot}" data-index="${pi}" onclick="removeSlot(this)"><i class="ti ti-x" style="font-size:11px"></i></button>`}
       </div>`;
     }).join('');
     const addBtn = !scheduleConfirmed
