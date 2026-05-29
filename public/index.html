@@ -33,23 +33,34 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .userBtn.loggedIn{background:#E8F5E9;border-color:#81C784;color:#2E7D32;}
 .userBtn .syncDot{position:absolute;top:1px;right:1px;width:7px;height:7px;border-radius:50%;background:#4CAF50;border:1.5px solid var(--card);}
 /* Auth Modal */
-.authOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.authOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;}
 .authOverlay.on{opacity:1;pointer-events:auto;}
-.authBox{background:var(--card);border-radius:20px 20px 0 0;width:100%;padding:20px 20px 36px;transform:translateY(30px);transition:transform .25s;}
+.authBox{background:var(--card);border-radius:24px 24px 0 0;width:100%;padding:0 0 40px;transform:translateY(40px);transition:transform .3s cubic-bezier(.32,1,.46,1);}
 .authOverlay.on .authBox{transform:translateY(0);}
-.authBoxHdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.authBoxTitle{font-size:16px;font-weight:700;color:var(--ink);}
-.authInput{width:100%;padding:11px 14px;border:0.5px solid var(--bdr);border-radius:10px;font-size:14px;font-family:var(--font);background:var(--bg);color:var(--ink);box-sizing:border-box;margin-bottom:10px;}
+.authPill{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:10px auto 0;}
+.authBranding{text-align:center;padding:24px 20px 20px;}
+.authBrandIcon{width:64px;height:64px;background:var(--red);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;}
+.authBrandTitle{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.authBrandSub{font-size:13px;color:var(--ink3);}
+.authBody{padding:0 20px;}
+.socialBtn{width:100%;padding:14px;border-radius:14px;border:0.5px solid var(--bdr);background:var(--card);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;font-family:var(--font);color:var(--ink);box-sizing:border-box;transition:opacity .15s;}
+.socialBtn:active{opacity:.75;}
+.socialBtnKakao{background:#FEE500;border-color:#FEE500;color:#191919;}
+.authOrRow{display:flex;align-items:center;gap:10px;margin:6px 0 14px;}
+.authOrLine{flex:1;height:0.5px;background:var(--bdr);}
+.authOrText{font-size:11px;color:var(--ink3);}
+.authInput{width:100%;padding:13px 14px;border:0.5px solid var(--bdr);border-radius:12px;font-size:14px;font-family:var(--font);background:var(--bg);color:var(--ink);box-sizing:border-box;margin-bottom:10px;}
 .authInput:focus{outline:none;border-color:var(--red);}
-.authSubmit{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;font-family:var(--font);}
-.authSwitch{text-align:center;font-size:12px;color:var(--ink3);margin-top:12px;cursor:pointer;}
-.authSwitch span{color:var(--red);font-weight:500;}
-.authErr{font-size:12px;color:var(--red);margin-bottom:8px;min-height:16px;}
-.authUserInfo{text-align:center;padding:8px 0 4px;}
-.authAvatar{width:56px;height:56px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;}
-.authEmail{font-size:13px;color:var(--ink2);margin-bottom:16px;}
-.authSignOutBtn{width:100%;padding:12px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:12px;font-size:14px;color:var(--ink2);cursor:pointer;font-family:var(--font);}
-.authSyncStatus{font-size:11px;color:var(--ink3);margin-bottom:12px;}
+.authSubmit{width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;margin-top:2px;font-family:var(--font);}
+.authSwitch{text-align:center;font-size:12px;color:var(--ink3);margin-top:14px;cursor:pointer;}
+.authSwitch span{color:var(--red);font-weight:600;}
+.authErr{font-size:12px;color:var(--red);margin-bottom:8px;min-height:16px;text-align:center;}
+.authSkip{text-align:center;font-size:12px;color:var(--ink3);margin-top:16px;cursor:pointer;padding:4px;}
+/* Logged-in view */
+.authUserCard{background:var(--bg);border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.authAvatar{width:48px;height:48px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.authSyncStatus{font-size:11px;color:#1a9e5c;margin-top:2px;}
+.authSignOutBtn{width:100%;padding:13px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:14px;font-size:14px;color:var(--ink2);cursor:pointer;font-family:var(--font);}
 /* Share Modal */
 .shareOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
 .shareOverlay.on{opacity:1;pointer-events:auto;}
@@ -403,11 +414,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   <!-- Auth Modal -->
   <div class="authOverlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
     <div class="authBox">
-      <div class="authBoxHdr">
-        <div class="authBoxTitle" id="authBoxTitle">로그인</div>
-        <button onclick="closeAuthModal()" style="background:none;border:none;font-size:20px;color:var(--ink3);cursor:pointer">×</button>
+      <div class="authPill"></div>
+      <div class="authBranding">
+        <div class="authBrandIcon">⛩</div>
+        <div class="authBrandTitle">도쿄 AI 가이드</div>
+        <div class="authBrandSub" id="authBrandSub">로그인하고 어디서든 내 리스트를 확인하세요</div>
       </div>
-      <div id="authBoxContent"></div>
+      <div class="authBody" id="authBoxContent"></div>
     </div>
   </div>
 
@@ -2718,9 +2731,10 @@ function _updateUserBtn() {
 }
 
 /* Auth Modal */
-let _authMode = 'signin'; // 'signin' | 'signup'
+let _authMode = 'social'; // 'social' | 'email-signin' | 'email-signup'
 
 function openAuthModal() {
+  if (!_currentUser) _authMode = 'social';
   _renderAuthBox();
   document.getElementById('authOverlay').classList.add('on');
 }
@@ -2730,49 +2744,86 @@ function closeAuthModal() {
 }
 
 function _renderAuthBox() {
-  const titleEl = document.getElementById('authBoxTitle');
+  const sub = document.getElementById('authBrandSub');
   const contentEl = document.getElementById('authBoxContent');
+
   if (_currentUser) {
-    titleEl.textContent = '내 계정';
     const email = _currentUser.email || '';
+    const provider = _currentUser.app_metadata?.provider || 'email';
+    const providerLabel = provider === 'google' ? 'Google' : provider === 'kakao' ? '카카오' : '이메일';
+    if (sub) sub.textContent = '내 계정';
     contentEl.innerHTML = `
-      <div class="authUserInfo">
+      <div class="authUserCard">
         <div class="authAvatar">👤</div>
-        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px">${email}</div>
-        <div class="authSyncStatus">데이터가 클라우드에 동기화되어 있어요</div>
-        <button class="authSignOutBtn" onclick="_signOut()"><i class="ti ti-logout" style="font-size:13px"></i> 로그아웃</button>
-      </div>`;
-  } else if (_authMode === 'signin') {
-    titleEl.textContent = '로그인';
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${email}</div>
+          <div class="authSyncStatus">✓ ${providerLabel} 로그인 · 클라우드 동기화 중</div>
+        </div>
+      </div>
+      <button class="authSignOutBtn" onclick="_signOut()"><i class="ti ti-logout" style="font-size:13px"></i> 로그아웃</button>`;
+    return;
+  }
+
+  if (_authMode === 'social') {
+    if (sub) sub.textContent = '로그인하고 어디서든 내 리스트를 확인하세요';
+    contentEl.innerHTML = `
+      <button class="socialBtn" onclick="_oauthSignIn('google')">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Google로 계속하기
+      </button>
+      <button class="socialBtn socialBtnKakao" onclick="_oauthSignIn('kakao')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.7 1.7 5.1 4.3 6.5L5.2 21l5.1-2.7c.55.08 1.12.12 1.7.12 5.523 0 10-3.477 10-7.8S17.523 3 12 3z"/></svg>
+        카카오로 계속하기
+      </button>
+      <div class="authOrRow"><div class="authOrLine"></div><div class="authOrText">또는</div><div class="authOrLine"></div></div>
+      <button class="socialBtn" onclick="_authMode='email-signin';_renderAuthBox()" style="color:var(--ink2);font-weight:500">
+        <i class="ti ti-mail" style="font-size:16px"></i> 이메일로 계속하기
+      </button>
+      <div class="authSkip" onclick="closeAuthModal()">나중에 하기</div>`;
+
+  } else if (_authMode === 'email-signin') {
+    if (sub) sub.textContent = '이메일로 로그인';
     contentEl.innerHTML = `
       <div class="authErr" id="authErr"></div>
       <input class="authInput" id="authEmail" type="email" placeholder="이메일" autocomplete="email">
       <input class="authInput" id="authPw" type="password" placeholder="비밀번호" autocomplete="current-password">
       <button class="authSubmit" onclick="_signIn()">로그인</button>
-      <div class="authSwitch" onclick="_toggleAuthMode()">계정이 없으신가요? <span>회원가입</span></div>`;
+      <div class="authSwitch" onclick="_authMode='email-signup';_renderAuthBox()">계정이 없으신가요? <span>회원가입</span></div>
+      <div class="authSwitch" style="margin-top:6px" onclick="_authMode='social';_renderAuthBox()"><span>← 다른 방법으로 로그인</span></div>`;
+
   } else {
-    titleEl.textContent = '회원가입';
+    if (sub) sub.textContent = '이메일로 회원가입';
     contentEl.innerHTML = `
       <div class="authErr" id="authErr"></div>
       <input class="authInput" id="authEmail" type="email" placeholder="이메일" autocomplete="email">
       <input class="authInput" id="authPw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="new-password">
       <button class="authSubmit" onclick="_signUp()">회원가입</button>
-      <div class="authSwitch" onclick="_toggleAuthMode()">이미 계정이 있으신가요? <span>로그인</span></div>`;
+      <div class="authSwitch" onclick="_authMode='email-signin';_renderAuthBox()">이미 계정이 있으신가요? <span>로그인</span></div>
+      <div class="authSwitch" style="margin-top:6px" onclick="_authMode='social';_renderAuthBox()"><span>← 다른 방법으로 로그인</span></div>`;
   }
 }
 
-function _toggleAuthMode() {
-  _authMode = _authMode === 'signin' ? 'signup' : 'signin';
-  _renderAuthBox();
+async function _oauthSignIn(provider) {
+  try {
+    const { error } = await _supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: location.origin }
+    });
+    if (error) alert(error.message);
+  } catch (e) {
+    alert('로그인 중 오류가 발생했어요.');
+  }
 }
 
 async function _signIn() {
   const email = document.getElementById('authEmail')?.value?.trim();
   const pw = document.getElementById('authPw')?.value;
   if (!email || !pw) return;
-  document.getElementById('authErr').textContent = '';
+  const errEl = document.getElementById('authErr');
+  errEl.style.color = 'var(--red)';
+  errEl.textContent = '';
   const { error } = await _supabase.auth.signInWithPassword({ email, password: pw });
-  if (error) { document.getElementById('authErr').textContent = error.message; return; }
+  if (error) { errEl.textContent = error.message; return; }
   closeAuthModal();
 }
 
@@ -2780,11 +2831,13 @@ async function _signUp() {
   const email = document.getElementById('authEmail')?.value?.trim();
   const pw = document.getElementById('authPw')?.value;
   if (!email || !pw) return;
-  document.getElementById('authErr').textContent = '';
+  const errEl = document.getElementById('authErr');
+  errEl.style.color = 'var(--red)';
+  errEl.textContent = '';
   const { error } = await _supabase.auth.signUp({ email, password: pw });
-  if (error) { document.getElementById('authErr').textContent = error.message; return; }
-  document.getElementById('authErr').style.color = '#1a9e5c';
-  document.getElementById('authErr').textContent = '인증 이메일을 보냈어요. 확인 후 로그인해주세요.';
+  if (error) { errEl.textContent = error.message; return; }
+  errEl.style.color = '#1a9e5c';
+  errEl.textContent = '인증 이메일을 보냈어요. 확인 후 로그인해주세요.';
 }
 
 async function _signOut() {
@@ -2894,7 +2947,12 @@ async function initSupabase() {
 
     // Check for shared plan in URL
     const shareId = new URLSearchParams(location.search).get('share');
-    if (shareId) _loadSharedPlan(shareId);
+    if (shareId) {
+      _loadSharedPlan(shareId);
+    } else if (!_currentUser) {
+      // 첫 진입 시 로그인 유도 (1초 딜레이로 앱 먼저 보여주기)
+      setTimeout(() => openAuthModal(), 1000);
+    }
   } catch {}
 }
 
