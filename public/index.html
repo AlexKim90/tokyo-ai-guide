@@ -2963,11 +2963,12 @@ async function initSupabase() {
     // Check for shared plan in URL
     const shareId = new URLSearchParams(location.search).get('share');
     if (shareId) {
+      closeAuthModal();
       _loadSharedPlan(shareId);
-    } else if (!_currentUser) {
-      // 첫 진입 시 로그인 유도 (1초 딜레이로 앱 먼저 보여주기)
-      setTimeout(() => openAuthModal(), 1000);
+    } else if (_currentUser) {
+      closeAuthModal(); // 이미 로그인 → 바로 닫기
     }
+    // 로그인 안 된 경우 → 이미 열려있으므로 그대로 유지
   } catch (e) { console.error('[Supabase] init error:', e); }
 }
 
@@ -2976,6 +2977,7 @@ renderList();
 renderPhotoSlots();
 initRoutePresets();
 initSchedule();
+openAuthModal(); // 즉시 로그인 화면 (Supabase 확인 후 로그인 상태면 자동 닫힘)
 initSupabase();
 </script>
 </body>
