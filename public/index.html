@@ -2928,8 +2928,11 @@ function closeSharedView() {
 async function initSupabase() {
   try {
     const cfg = await fetch('/api/config').then(r => r.json());
-    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) return; // not configured yet
+    console.log('[Supabase] config:', cfg.supabaseUrl, cfg.supabaseAnonKey?.slice(0,20));
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) { console.warn('[Supabase] missing config'); return; }
+    if (!window.supabase) { console.error('[Supabase] window.supabase not loaded'); return; }
     _supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    console.log('[Supabase] client created:', !!_supabase);
 
     // Check existing session
     const { data: { session } } = await _supabase.auth.getSession();
@@ -2954,7 +2957,7 @@ async function initSupabase() {
       // 첫 진입 시 로그인 유도 (1초 딜레이로 앱 먼저 보여주기)
       setTimeout(() => openAuthModal(), 1000);
     }
-  } catch {}
+  } catch (e) { console.error('[Supabase] init error:', e); }
 }
 
 /* ===== Init ===== */
