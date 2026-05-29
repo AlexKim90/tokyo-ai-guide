@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{--red:#D94035;--red-l:#FDECEA;--red-m:#F2A09A;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--bg:#F5F5F5;--card:#FFFFFF;--bdr:rgba(0,0,0,0.08);--r:14px;--font:'DM Sans',sans-serif;--jp:'Noto Sans JP',sans-serif;}
 @media(prefers-color-scheme:dark){:root{--ink:#F0EDE8;--ink2:#AAA;--ink3:#666;--bg:#121212;--card:#1E1E1E;--bdr:rgba(255,255,255,0.09);--red-l:#2A1210;}}
@@ -27,6 +28,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .htitle{font-size:15px;font-weight:600;color:var(--ink);}
 .hsub{font-size:10px;color:var(--ink3);font-family:var(--jp);}
 .hbadge{font-size:10px;background:var(--red-l);color:var(--red);border-radius:20px;padding:3px 9px;font-weight:500;}
+.hdrRight{display:flex;align-items:center;gap:8px;}
+.userBtn{width:30px;height:30px;border-radius:50%;border:0.5px solid var(--bdr);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:14px;color:var(--ink2);}
+.userBtn.loggedIn{background:#E8F5E9;border-color:#81C784;color:#2E7D32;}
+.userBtn .syncDot{position:absolute;top:1px;right:1px;width:7px;height:7px;border-radius:50%;background:#4CAF50;border:1.5px solid var(--card);}
+/* Auth Modal */
+.authOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.authOverlay.on{opacity:1;pointer-events:auto;}
+.authBox{background:var(--card);border-radius:20px 20px 0 0;width:100%;padding:20px 20px 36px;transform:translateY(30px);transition:transform .25s;}
+.authOverlay.on .authBox{transform:translateY(0);}
+.authBoxHdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.authBoxTitle{font-size:16px;font-weight:700;color:var(--ink);}
+.authInput{width:100%;padding:11px 14px;border:0.5px solid var(--bdr);border-radius:10px;font-size:14px;font-family:var(--font);background:var(--bg);color:var(--ink);box-sizing:border-box;margin-bottom:10px;}
+.authInput:focus{outline:none;border-color:var(--red);}
+.authSubmit{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;font-family:var(--font);}
+.authSwitch{text-align:center;font-size:12px;color:var(--ink3);margin-top:12px;cursor:pointer;}
+.authSwitch span{color:var(--red);font-weight:500;}
+.authErr{font-size:12px;color:var(--red);margin-bottom:8px;min-height:16px;}
+.authUserInfo{text-align:center;padding:8px 0 4px;}
+.authAvatar{width:56px;height:56px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;}
+.authEmail{font-size:13px;color:var(--ink2);margin-bottom:16px;}
+.authSignOutBtn{width:100%;padding:12px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:12px;font-size:14px;color:var(--ink2);cursor:pointer;font-family:var(--font);}
+.authSyncStatus{font-size:11px;color:var(--ink3);margin-bottom:12px;}
+/* Share Modal */
+.shareOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.shareOverlay.on{opacity:1;pointer-events:auto;}
+.shareBox{background:var(--card);border-radius:20px 20px 0 0;width:100%;padding:20px 20px 36px;transform:translateY(30px);transition:transform .25s;}
+.shareOverlay.on .shareBox{transform:translateY(0);}
+.shareUrlBox{background:var(--bg);border:0.5px solid var(--bdr);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--ink2);word-break:break-all;margin:12px 0;}
+.shareCopyBtn{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);}
+/* Shared plan view overlay */
+.sharedViewOverlay{position:fixed;inset:0;background:var(--bg);z-index:400;display:flex;flex-direction:column;overflow:hidden;}
+.sharedViewHdr{padding:14px 16px;background:var(--card);border-bottom:0.5px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.sharedViewBadge{font-size:11px;background:#E8F5E9;color:#2E7D32;border-radius:20px;padding:3px 9px;font-weight:500;flex-shrink:0;}
+.sharedViewTitle{font-size:14px;font-weight:600;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* Tab Bar */
 .tabBar{display:flex;background:var(--card);border-bottom:0.5px solid var(--bdr);flex-shrink:0;}
@@ -359,7 +394,42 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
       <div class="hmark">⛩</div>
       <div><div class="htitle">도쿄 AI 가이드</div><div class="hsub">東京 AI ガイド</div></div>
     </div>
-    <div class="hbadge">Claude 탑재</div>
+    <div class="hdrRight">
+      <div class="hbadge">Claude 탑재</div>
+      <button class="userBtn" id="userBtn" onclick="openAuthModal()"><i class="ti ti-user"></i></button>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="authOverlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
+    <div class="authBox">
+      <div class="authBoxHdr">
+        <div class="authBoxTitle" id="authBoxTitle">로그인</div>
+        <button onclick="closeAuthModal()" style="background:none;border:none;font-size:20px;color:var(--ink3);cursor:pointer">×</button>
+      </div>
+      <div id="authBoxContent"></div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div class="shareOverlay" id="shareOverlay" onclick="if(event.target===this)closeShareModal()">
+    <div class="shareBox">
+      <div class="authBoxHdr">
+        <div class="authBoxTitle">일정 공유</div>
+        <button onclick="closeShareModal()" style="background:none;border:none;font-size:20px;color:var(--ink3);cursor:pointer">×</button>
+      </div>
+      <div id="shareBoxContent"></div>
+    </div>
+  </div>
+
+  <!-- Shared Plan View -->
+  <div class="sharedViewOverlay" id="sharedViewOverlay" style="display:none">
+    <div class="sharedViewHdr">
+      <span class="sharedViewBadge">공유된 일정</span>
+      <span class="sharedViewTitle" id="sharedViewTitle">도쿄 여행 일정</span>
+      <button onclick="closeSharedView()" style="background:none;border:none;font-size:13px;color:var(--ink3);cursor:pointer;flex-shrink:0">닫기</button>
+    </div>
+    <div class="scroll" id="sharedViewBody" style="padding:14px;"></div>
   </div>
 
   <!-- Tab Bar -->
@@ -1020,6 +1090,13 @@ function parseClaudeToPhrase(text) {
 
 /* ===== State ===== */
 let savedPlaces = JSON.parse(localStorage.getItem('tokyoPlaces') || '[]');
+let _supabase = null;
+let _currentUser = null;
+
+function savePlaces() {
+  savePlaces();
+  _syncPlaces();
+}
 let importPlaces = [];
 let importListName = '';
 let photos = [null, null, null, null]; // base64 per slot
@@ -1177,7 +1254,7 @@ async function claudeTagPlaces(names) {
       const idx = savedPlaces.findIndex(p => p.name === name);
       if (idx !== -1 && ALL_TAGS.includes(tag)) savedPlaces[idx].tag = tag;
     }
-    localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+    savePlaces();
     renderList();
   } catch {}
 }
@@ -1296,13 +1373,13 @@ function savePlace(place) {
   const exists = savedPlaces.find(p => p.name === place.name);
   if (exists) return;
   savedPlaces.unshift(place);
-  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  savePlaces();
   renderList();
 }
 
 function deletePlace(i) {
   savedPlaces.splice(i, 1);
-  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  savePlaces();
   renderList();
 }
 
@@ -1310,7 +1387,7 @@ function clearAllPlaces() {
   if (!savedPlaces.length) return;
   if (!confirm(`저장된 장소 ${savedPlaces.length}개를 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
   savedPlaces.length = 0;
-  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  savePlaces();
   renderList();
 }
 
@@ -1449,7 +1526,7 @@ function importSelected() {
       toEnrich.push(p.name);
     }
   }
-  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  savePlaces();
   renderList();
   closeModal('pasteModal');
   resetPasteModal();
@@ -1484,7 +1561,7 @@ async function enrichPlaceIds(names) {
       };
     } catch { /* 실패해도 기존 URL 유지 */ }
   }
-  localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+  savePlaces();
   renderList();
 }
 
@@ -2316,7 +2393,10 @@ let pickerTarget = null;
 let pickerFilterTag = '';
 let scheduleConfirmed = JSON.parse(localStorage.getItem('tokyoScheduleConfirmed') || 'false');
 
-function saveSchedule() { localStorage.setItem('tokyoSchedule', JSON.stringify(scheduleData)); }
+function saveSchedule() {
+  localStorage.setItem('tokyoSchedule', JSON.stringify(scheduleData));
+  _syncSchedule();
+}
 
 function confirmSchedule() {
   scheduleConfirmed = true;
@@ -2335,7 +2415,10 @@ function renderScheduleBar() {
   if (scheduleConfirmed) {
     bar.innerHTML = `
       <div class="confirmedBadge"><i class="ti ti-circle-check-filled" style="font-size:16px"></i> 일정 확정됨</div>
-      <button class="editBtn" onclick="editSchedule()"><i class="ti ti-pencil" style="font-size:12px"></i> 편집</button>`;
+      <div style="display:flex;gap:6px">
+        <button class="editBtn" onclick="openShareModal()"><i class="ti ti-share" style="font-size:12px"></i> 공유</button>
+        <button class="editBtn" onclick="editSchedule()"><i class="ti ti-pencil" style="font-size:12px"></i> 편집</button>
+      </div>`;
   } else {
     bar.innerHTML = `<button class="confirmBtn" onclick="confirmSchedule()"><i class="ti ti-circle-check" style="font-size:15px"></i> 일정 확정하기</button>`;
   }
@@ -2586,11 +2669,241 @@ async function genAIPlan() {
 
 function initSchedule() { renderSchedule(); }
 
+/* ===== Supabase Auth & Sync ===== */
+
+async function _syncPlaces() {
+  if (!_supabase || !_currentUser) return;
+  try {
+    await _supabase.from('places').upsert({ user_id: _currentUser.id, data: savedPlaces, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  } catch {}
+}
+
+async function _syncSchedule() {
+  if (!_supabase || !_currentUser) return;
+  try {
+    await _supabase.from('schedules').upsert({ user_id: _currentUser.id, data: scheduleData, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  } catch {}
+}
+
+async function _loadFromCloud() {
+  if (!_supabase || !_currentUser) return;
+  try {
+    const [pr, sr] = await Promise.all([
+      _supabase.from('places').select('data').eq('user_id', _currentUser.id).maybeSingle(),
+      _supabase.from('schedules').select('data').eq('user_id', _currentUser.id).maybeSingle()
+    ]);
+    if (pr.data?.data) {
+      savedPlaces = pr.data.data;
+      localStorage.setItem('tokyoPlaces', JSON.stringify(savedPlaces));
+    }
+    if (sr.data?.data) {
+      scheduleData = sr.data.data;
+      localStorage.setItem('tokyoSchedule', JSON.stringify(scheduleData));
+    }
+    renderList();
+    renderSchedule();
+  } catch {}
+}
+
+function _updateUserBtn() {
+  const btn = document.getElementById('userBtn');
+  if (!btn) return;
+  if (_currentUser) {
+    btn.className = 'userBtn loggedIn';
+    btn.innerHTML = `<i class="ti ti-user"></i><span class="syncDot"></span>`;
+  } else {
+    btn.className = 'userBtn';
+    btn.innerHTML = `<i class="ti ti-user"></i>`;
+  }
+}
+
+/* Auth Modal */
+let _authMode = 'signin'; // 'signin' | 'signup'
+
+function openAuthModal() {
+  _renderAuthBox();
+  document.getElementById('authOverlay').classList.add('on');
+}
+
+function closeAuthModal() {
+  document.getElementById('authOverlay').classList.remove('on');
+}
+
+function _renderAuthBox() {
+  const titleEl = document.getElementById('authBoxTitle');
+  const contentEl = document.getElementById('authBoxContent');
+  if (_currentUser) {
+    titleEl.textContent = '내 계정';
+    const email = _currentUser.email || '';
+    contentEl.innerHTML = `
+      <div class="authUserInfo">
+        <div class="authAvatar">👤</div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px">${email}</div>
+        <div class="authSyncStatus">데이터가 클라우드에 동기화되어 있어요</div>
+        <button class="authSignOutBtn" onclick="_signOut()"><i class="ti ti-logout" style="font-size:13px"></i> 로그아웃</button>
+      </div>`;
+  } else if (_authMode === 'signin') {
+    titleEl.textContent = '로그인';
+    contentEl.innerHTML = `
+      <div class="authErr" id="authErr"></div>
+      <input class="authInput" id="authEmail" type="email" placeholder="이메일" autocomplete="email">
+      <input class="authInput" id="authPw" type="password" placeholder="비밀번호" autocomplete="current-password">
+      <button class="authSubmit" onclick="_signIn()">로그인</button>
+      <div class="authSwitch" onclick="_toggleAuthMode()">계정이 없으신가요? <span>회원가입</span></div>`;
+  } else {
+    titleEl.textContent = '회원가입';
+    contentEl.innerHTML = `
+      <div class="authErr" id="authErr"></div>
+      <input class="authInput" id="authEmail" type="email" placeholder="이메일" autocomplete="email">
+      <input class="authInput" id="authPw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="new-password">
+      <button class="authSubmit" onclick="_signUp()">회원가입</button>
+      <div class="authSwitch" onclick="_toggleAuthMode()">이미 계정이 있으신가요? <span>로그인</span></div>`;
+  }
+}
+
+function _toggleAuthMode() {
+  _authMode = _authMode === 'signin' ? 'signup' : 'signin';
+  _renderAuthBox();
+}
+
+async function _signIn() {
+  const email = document.getElementById('authEmail')?.value?.trim();
+  const pw = document.getElementById('authPw')?.value;
+  if (!email || !pw) return;
+  document.getElementById('authErr').textContent = '';
+  const { error } = await _supabase.auth.signInWithPassword({ email, password: pw });
+  if (error) { document.getElementById('authErr').textContent = error.message; return; }
+  closeAuthModal();
+}
+
+async function _signUp() {
+  const email = document.getElementById('authEmail')?.value?.trim();
+  const pw = document.getElementById('authPw')?.value;
+  if (!email || !pw) return;
+  document.getElementById('authErr').textContent = '';
+  const { error } = await _supabase.auth.signUp({ email, password: pw });
+  if (error) { document.getElementById('authErr').textContent = error.message; return; }
+  document.getElementById('authErr').style.color = '#1a9e5c';
+  document.getElementById('authErr').textContent = '인증 이메일을 보냈어요. 확인 후 로그인해주세요.';
+}
+
+async function _signOut() {
+  await _supabase.auth.signOut();
+  _currentUser = null;
+  _updateUserBtn();
+  closeAuthModal();
+}
+
+/* Share */
+function openShareModal() {
+  if (!_currentUser) {
+    openAuthModal();
+    return;
+  }
+  document.getElementById('shareBoxContent').innerHTML = `<div style="font-size:13px;color:var(--ink3);text-align:center;padding:20px 0">링크를 만들고 있어요...</div>`;
+  document.getElementById('shareOverlay').classList.add('on');
+  _createShareLink();
+}
+
+function closeShareModal() {
+  document.getElementById('shareOverlay').classList.remove('on');
+}
+
+async function _createShareLink() {
+  try {
+    const days = scheduleData.plan.length;
+    const title = `도쿄 ${days}박 ${days + 1}일 여행 일정`;
+    const { data, error } = await _supabase.from('shared_plans').insert({
+      user_id: _currentUser.id,
+      schedule_data: scheduleData,
+      places_data: savedPlaces,
+      title
+    }).select('id').single();
+    if (error) throw error;
+    const url = `${location.origin}/?share=${data.id}`;
+    document.getElementById('shareBoxContent').innerHTML = `
+      <div style="font-size:13px;color:var(--ink2);margin-bottom:4px">이 링크를 공유하면 누구나 일정을 볼 수 있어요.</div>
+      <div class="shareUrlBox" id="shareUrlText">${url}</div>
+      <button class="shareCopyBtn" onclick="_copyShareUrl('${url}')"><i class="ti ti-copy" style="font-size:14px"></i> 링크 복사</button>`;
+  } catch (e) {
+    document.getElementById('shareBoxContent').innerHTML = `<div style="color:var(--red);font-size:13px;text-align:center;padding:20px 0">링크 생성에 실패했어요.</div>`;
+  }
+}
+
+async function _copyShareUrl(url) {
+  try { await navigator.clipboard.writeText(url); } catch { }
+  const btn = document.querySelector('.shareCopyBtn');
+  if (btn) { btn.textContent = '✓ 복사됨!'; setTimeout(() => { btn.innerHTML = '<i class="ti ti-copy" style="font-size:14px"></i> 링크 복사'; }, 2000); }
+}
+
+/* Shared plan view */
+async function _loadSharedPlan(shareId) {
+  const overlay = document.getElementById('sharedViewOverlay');
+  overlay.style.display = 'flex';
+  document.getElementById('sharedViewBody').innerHTML = `<div style="color:var(--ink3);font-size:13px;text-align:center;padding:40px 0">불러오는 중...</div>`;
+  try {
+    const { data, error } = await _supabase.from('shared_plans').select('*').eq('id', shareId).single();
+    if (error || !data) throw new Error('not found');
+    document.getElementById('sharedViewTitle').textContent = data.title || '도쿄 여행 일정';
+    const sd = data.schedule_data;
+    const html = sd.plan.map((day, i) => {
+      const SLOTS = ['아침','점심','저녁','밤'];
+      const hotelHtml = day['숙소'] ? `<div style="font-size:12px;color:#185FA5;margin-bottom:8px"><i class="ti ti-building" style="font-size:11px"></i> 숙소: ${day['숙소'].name}</div>` : '';
+      const slotsHtml = SLOTS.map(slot => {
+        const places = Array.isArray(day[slot]) ? day[slot] : (day[slot] ? [day[slot]] : []);
+        if (!places.length) return '';
+        return `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:5px">${slot}</div>${places.map(p => `<div style="background:var(--card);border:0.5px solid var(--bdr);border-radius:10px;padding:9px 12px;margin-bottom:5px;font-size:13px;font-weight:500;color:var(--ink)">${p.name}${p.address ? `<div style="font-size:11px;color:var(--ink3);margin-top:2px">${p.address}</div>` : ''}</div>`).join('')}</div>`;
+      }).join('');
+      return `<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--bdr)">${i + 1}일차</div>${hotelHtml}${slotsHtml || '<div style="font-size:12px;color:var(--ink3)">등록된 장소 없음</div>'}</div>`;
+    }).join('');
+    document.getElementById('sharedViewBody').innerHTML = html || `<div style="font-size:13px;color:var(--ink3);text-align:center;padding:40px 0">일정 데이터가 없어요.</div>`;
+  } catch {
+    document.getElementById('sharedViewBody').innerHTML = `<div style="font-size:13px;color:var(--red);text-align:center;padding:40px 0">일정을 불러올 수 없어요.</div>`;
+  }
+}
+
+function closeSharedView() {
+  document.getElementById('sharedViewOverlay').style.display = 'none';
+  // remove share param from URL without reload
+  const url = new URL(location.href);
+  url.searchParams.delete('share');
+  history.replaceState(null, '', url.toString());
+}
+
+/* Init Supabase */
+async function initSupabase() {
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) return; // not configured yet
+    _supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+
+    // Check existing session
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session) {
+      _currentUser = session.user;
+      _updateUserBtn();
+      await _loadFromCloud();
+    }
+
+    // Auth state listener
+    _supabase.auth.onAuthStateChange(async (event, session) => {
+      _currentUser = session?.user || null;
+      _updateUserBtn();
+      if (event === 'SIGNED_IN') await _loadFromCloud();
+    });
+
+    // Check for shared plan in URL
+    const shareId = new URLSearchParams(location.search).get('share');
+    if (shareId) _loadSharedPlan(shareId);
+  } catch {}
+}
+
 /* ===== Init ===== */
 renderList();
 renderPhotoSlots();
 initRoutePresets();
 initSchedule();
+initSupabase();
 </script>
 </body>
 </html>
