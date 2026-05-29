@@ -33,14 +33,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
 .userBtn.loggedIn{background:#E8F5E9;border-color:#81C784;color:#2E7D32;}
 .userBtn .syncDot{position:absolute;top:1px;right:1px;width:7px;height:7px;border-radius:50%;background:#4CAF50;border:1.5px solid var(--card);}
 /* Auth Modal */
-.authOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;}
+.authOverlay{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:stretch;opacity:0;pointer-events:none;transition:opacity .3s;background:#111 url('/login-bg.jpg') center/cover no-repeat;}
+.authOverlay::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.75) 75%,rgba(0,0,0,.9) 100%);pointer-events:none;}
 .authOverlay.on{opacity:1;pointer-events:auto;}
-.authBox{background:var(--card);border-radius:24px 24px 0 0;width:100%;padding:0 0 40px;transform:translateY(40px);transition:transform .3s cubic-bezier(.32,1,.46,1);}
+.authOverlayTop{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:24px;position:relative;z-index:1;}
+.authOverlayTopContent{text-align:center;}
+.authOverlayAppName{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.5px;text-shadow:0 2px 12px rgba(0,0,0,.4);}
+.authOverlayAppSub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;text-shadow:0 1px 6px rgba(0,0,0,.4);}
+.authBox{background:var(--card);border-radius:24px 24px 0 0;width:100%;padding:0 0 40px;transform:translateY(40px);transition:transform .3s cubic-bezier(.32,1,.46,1);position:relative;z-index:1;flex-shrink:0;}
 .authOverlay.on .authBox{transform:translateY(0);}
 .authPill{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:10px auto 0;}
-.authBranding{text-align:center;padding:24px 20px 20px;}
-.authBrandIcon{width:64px;height:64px;background:var(--red);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;}
-.authBrandTitle{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.authBranding{text-align:center;padding:20px 20px 16px;}
+.authBrandIcon{display:none;}
+.authBrandTitle{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:3px;}
 .authBrandSub{font-size:13px;color:var(--ink3);}
 .authBody{padding:0 20px;}
 .socialBtn{width:100%;padding:14px;border-radius:14px;border:0.5px solid var(--bdr);background:var(--card);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;font-family:var(--font);color:var(--ink);box-sizing:border-box;transition:opacity .15s;}
@@ -412,7 +417,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);}
   </div>
 
   <!-- Auth Modal -->
-  <div class="authOverlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
+  <div class="authOverlay" id="authOverlay">
+    <div class="authOverlayTop" onclick="closeAuthModal()">
+      <div class="authOverlayTopContent">
+        <div class="authOverlayAppName">도쿄 AI 가이드</div>
+        <div class="authOverlayAppSub">東京 AI ガイド · AI 기반 여행 도우미</div>
+      </div>
+    </div>
     <div class="authBox">
       <div class="authPill"></div>
       <div class="authBranding">
