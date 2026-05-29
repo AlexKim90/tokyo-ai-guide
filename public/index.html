@@ -2804,6 +2804,7 @@ function _renderAuthBox() {
 }
 
 async function _oauthSignIn(provider) {
+  if (!_supabase) { alert('서버 연결이 안 됐어요. 잠시 후 다시 시도해주세요.'); return; }
   try {
     const { error } = await _supabase.auth.signInWithOAuth({
       provider,
@@ -2811,7 +2812,7 @@ async function _oauthSignIn(provider) {
     });
     if (error) alert(error.message);
   } catch (e) {
-    alert('로그인 중 오류가 발생했어요.');
+    alert('오류: ' + (e?.message || JSON.stringify(e)));
   }
 }
 
